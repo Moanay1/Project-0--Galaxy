@@ -193,4 +193,4 @@ if __name__ == "__main__":
 
     give_inside_proportion_with_time_same_age()
 
-    2
+    1
