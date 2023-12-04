@@ -6,7 +6,7 @@ from tqdm import tqdm
 import time
 # Custom packages
 import zeroordergalaxy as zero
-import SN_bubble as snr
+import sn_bubble as snr
 import shock_speed
 
 

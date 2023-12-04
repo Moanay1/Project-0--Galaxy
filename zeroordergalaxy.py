@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as inte
 import random
-import SN_bubble as SN
+import sn_bubble as SN
 
 plt.rcParams.update({'font.size': 17})
 plt.rcParams["font.family"] = "serif"
