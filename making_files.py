@@ -24,9 +24,11 @@ def fit_gaussian(x: np.ndarray) -> np.ndarray:
     hist, edges = binning(x)
 
     pOpt, pCov = opt.curve_fit(make_gaussian, edges, hist,
-                               p0=(np.mean(x), 5, 10))
+                               p0=(np.mean(x), 5, 10),
+                               bounds=((0, 0, 0), (100, 1000, 1000)))
     mu, sigma, A = pOpt
     dmu, dsigma, dA = np.sqrt(np.diag(pCov))
+    print(mu, sigma, A)
     return mu, sigma, A, edges
 
 
@@ -150,11 +152,12 @@ def give_inside_proportion_with_time_same_age() -> None:
             for _ in range(100):
                 proportion_arr = np.append(
                     proportion_arr,
-                    zeroordergalaxy.give_is_inside_proportion(t_, n=100,
+                    zeroordergalaxy.give_is_inside_proportion(t_, n=10,
                                                               phase=phases[i]))
             mu, sigma, A, edges = fit_gaussian(proportion_arr)
             mu_arr = np.append(mu_arr, mu)
             sigma_arr = np.append(sigma_arr, sigma)
+            mu_arr = np.append(mu_arr, np.mean(proportion_arr))
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"{phases[i]}")
@@ -167,9 +170,6 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.axvline(x=110, linestyle="-.", color="red",
                 label=r"Monogem: 110 kyr")
 
-    # plt.plot(t_arr/1e3, max_arr, linewidth = 0.5, color="red")
-    # plt.fill_between(t_arr/1e3, min_sigma_arr, min_sigma_arr, alpha = 0.2, color = "red", label = r"2 $\sigma$")
-
     plt.xscale("log")
     plt.xlabel("Pulsar age [kyr]")
     plt.ylabel("Pulsars inside their SNR [%]")
@@ -181,16 +181,59 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.show()
 
 
-t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
+def give_inside_proportion_with_time_varying_parameters() -> None:
+
+    colors = ["blue", "orange"]
+    variable = [True, False]
+
+    fig = plt.figure()
+
+    for i in range(len(variable)):
+        mu_arr, sigma_arr = np.array([]), np.array([])
+
+        for t_ in tqdm(t_arr):
+            proportion_arr = np.array([])
+            for _ in range(100):
+                proportion_arr = np.append(
+                    proportion_arr,
+                    zeroordergalaxy.give_is_inside_proportion(
+                        t_, n=100, phase="PDS",
+                        variable_parameters=variable[i]))
+            mu, sigma, A, edges = fit_gaussian(proportion_arr)
+            mu_arr = np.append(mu_arr, mu)
+            sigma_arr = np.append(sigma_arr, sigma)
+            # mu_arr = np.append(mu_arr, np.mean(proportion_arr))
+
+        plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
+                 label=f"Parameters changing {variable[i]}")
+        plt.fill_between(t_arr/1e3, mu_arr-2*sigma_arr, mu_arr+2*sigma_arr,
+                         alpha=0.2, color=colors[i],
+                         label=r"2$\sigma$ "f"{variable[i]}")
+
+    plt.axvline(x=342, linestyle="--", color="red",
+                label=r"Geminga: 342 kyr")
+    plt.axvline(x=110, linestyle="-.", color="red",
+                label=r"Monogem: 110 kyr")
+
+    plt.xscale("log")
+    plt.xlabel("Pulsar age [kyr]")
+    plt.ylabel("Pulsars inside their SNR [%]")
+    plt.grid()
+    plt.legend(fontsize=12)
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time\
+                _carying parameters.pdf")
+    plt.show()
+
+
+t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 5, endpoint=True)
 
 if __name__ == "__main__":
 
     # make_galaxies()
     # give_inside_proportion()
 
-    # vary_age_galaxies()
-    # give_inside_proportion_evolution_with_time()
-
-    give_inside_proportion_with_time_same_age()
+    # give_inside_proportion_with_time_same_age()
+    give_inside_proportion_with_time_varying_parameters()
 
     1

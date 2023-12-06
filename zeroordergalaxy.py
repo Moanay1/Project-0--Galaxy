@@ -42,7 +42,7 @@ def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     return 1/np.sqrt(2*np.pi*sigma * zz**2)\
             * np.exp(-(np.log(zz)-mu)**2/(2*sigma))
 
-def give_E_SN(n_: int) -> np.ndarray:
+def give_E_SN(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the SN energy, following
     Lehay et al. 2020.
 
@@ -58,7 +58,7 @@ def give_E_SN(n_: int) -> np.ndarray:
     return np.random.lognormal(np.log(mu), np.log(sigma), n_)
 
 
-def give_n_ISM(n_: int) -> np.ndarray:
+def give_n_ISM(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the ISM density, following
     Lehay et al. 2020.
 
@@ -250,9 +250,8 @@ def test_ST_radius() -> None:
 
 
 def test_E_SN() -> None:
-    z = np.logspace(48, 53, 1000)  # erg
+    z = np.logspace(48, 52, 1000)  # erg
     arr = give_E_SN(1000)
-    print(arr)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
@@ -260,11 +259,11 @@ def test_E_SN() -> None:
 
     fig = plt.figure()
     plt.plot(z, make_lognormal(z, np.log(2.7e50), np.log(3.5))/inte.quad(
-    lambda x: make_lognormal(x, np.log(2.7e50), np.log(3.5)), 1e48, 1e53)[0])
+    lambda x: make_lognormal(x, np.log(2.7e50), np.log(3.5)), 1e48, 1e52)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
-    #plt.xlim(np.min(arr), np.max(arr))
+    plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
@@ -272,7 +271,7 @@ def test_E_SN() -> None:
 
 
 def test_n_ISM() -> None:
-    z = np.logspace(-5, 2, 1000)  # cm-3
+    z = np.logspace(-4, 1, 1000)  # cm-3
     arr = give_n_ISM(1000)
 
     # Uniform histogram in log x-scale
@@ -281,10 +280,11 @@ def test_n_ISM() -> None:
 
     fig = plt.figure()
     plt.plot(z, make_lognormal(z, np.log(0.069), np.log(5.1))/inte.quad(
-        lambda x: make_lognormal(x, np.log(0.069), np.log(5.1)), 1e-5, 1e2)[0])
+        lambda x: make_lognormal(x, np.log(0.069), np.log(5.1)), 1e-4, 1e1)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")
+    plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
@@ -436,17 +436,27 @@ def create_file_zero(
 def give_is_inside_proportion(
         t: float = 100e3,
         n: int = 100,
-        phase: str = "ST"
+        phase: str = "ST",
+        variable_parameters: bool = False
 ) -> float:
     """Choose phase between "ST" and "PDS"
     (for pressure driven snowplough)."""
     vk_arr, is_inside_arr = np.array([]), np.array([])
 
-    if phase == "ST":
-        r_SNR = give_SNR_radius(t=t)  # Only with ST
-    elif phase == "PDS":
-        # With snowplough phase and merging time
-        r_SNR = SN.give_SN_radius(t=t)
+    if variable_parameters:
+        E_SN = give_E_SN()
+        n_ISM = give_n_ISM()
+        if phase == "ST":
+            r_SNR = give_SNR_radius(t=t, E=E_SN, n=n_ISM)  # Only with ST
+        elif phase == "PDS":
+            # With snowplough phase and merging time
+            r_SNR = SN.give_SN_radius(t=t, E=E_SN, n=n_ISM)
+    else:
+        if phase == "ST":
+            r_SNR = give_SNR_radius(t=t)  # Only with ST
+        elif phase == "PDS":
+            # With snowplough phase and merging time
+            r_SNR = SN.give_SN_radius(t=t)
 
     for n_ in range(n):
         vk_arr = np.append(vk_arr, give_kick_velocity())
@@ -472,8 +482,6 @@ if __name__ == "__main__":
     test_n_ISM()
 
     # create_galactic_coordinates(1e4)
-
-    # # print("SNR radius =",give_SNR_radius())
 
     # create_file_zero()
 
