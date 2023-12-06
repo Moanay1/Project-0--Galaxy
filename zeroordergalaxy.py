@@ -8,7 +8,7 @@ plt.rcParams.update({'font.size': 17})
 plt.rcParams["font.family"] = "serif"
 
 
-def make_gaussian(zz: float, mu: float, sigma: float) -> float:
+def make_gaussian(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     r"""
     Returns the gaussian function of 'zz',
     for the mean 'mu' and variance 'sigma'
@@ -16,7 +16,7 @@ def make_gaussian(zz: float, mu: float, sigma: float) -> float:
     -----
     Input:
     -----
-    zz    : float, point for which we want the Gaussian
+    zz    : np.ndarray, point for which we want the Gaussian
     mu    : float, mean of the Gaussian
     sigma : float, variance of the Gaussian
 
@@ -26,6 +26,51 @@ def make_gaussian(zz: float, mu: float, sigma: float) -> float:
     y     : float, Gaussian value
     """
     return 1/np.sqrt(2*np.pi*sigma**2) * np.exp(-(zz-mu)**2/(2*sigma**2))
+
+def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
+    """Returns the log normal function of `zz` for parameters `mu` and 
+    `sigma`.
+
+    Args:
+        zz (np.ndarray): point for which we want the lognormal
+        mu (float): mean
+        sigma (float): variance
+
+    Returns:
+        float: lognormal value
+    """
+    return 1/np.sqrt(2*np.pi*sigma * zz**2)\
+            * np.exp(-(np.log(zz)-mu)**2/(2*sigma))
+
+def give_E_SN(n_: int) -> np.ndarray:
+    """Returns an array of length `n` for the SN energy, following
+    Lehay et al. 2020.
+
+    Args:
+        n_ (int): Desired length of the final energy array
+
+    Returns:
+        np.ndarray: erg, E_SN array
+    """
+    mu = 2.7e50 # erg
+    sigma = 3.51
+
+    return np.random.lognormal(np.log(mu), np.log(sigma), n_)
+
+
+def give_n_ISM(n_: int) -> np.ndarray:
+    """Returns an array of length `n` for the ISM density, following
+    Lehay et al. 2020.
+
+    Args:
+        n_ (int): Desired length of the final density array
+
+    Returns:
+        np.ndarray: cm-3, n_ISM array
+    """
+    mu = 0.069 # cm-3
+    sigma = 5.1
+    return np.random.lognormal(np.log(mu), np.log(sigma), n_)
 
 
 def make_maxwellian(vv: float, sigma: float) -> float:
@@ -204,6 +249,48 @@ def test_ST_radius() -> None:
     # plt.show()
 
 
+def test_E_SN() -> None:
+    z = np.logspace(48, 53, 1000)  # erg
+    arr = give_E_SN(1000)
+    print(arr)
+
+    # Uniform histogram in log x-scale
+    _, bins = np.histogram(arr, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.plot(z, make_lognormal(z, np.log(2.7e50), np.log(3.5))/inte.quad(
+    lambda x: make_lognormal(x, np.log(2.7e50), np.log(3.5)), 1e48, 1e53)[0])
+    plt.hist(arr, histtype="step", density=True, bins=logbins)
+    plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
+    plt.ylabel("PDF")
+    #plt.xlim(np.min(arr), np.max(arr))
+    plt.xscale("log")
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
+    plt.show()
+
+
+def test_n_ISM() -> None:
+    z = np.logspace(-5, 2, 1000)  # cm-3
+    arr = give_n_ISM(1000)
+
+    # Uniform histogram in log x-scale
+    _, bins = np.histogram(arr, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.plot(z, make_lognormal(z, np.log(0.069), np.log(5.1))/inte.quad(
+        lambda x: make_lognormal(x, np.log(0.069), np.log(5.1)), 1e-5, 1e2)[0])
+    plt.hist(arr, histtype="step", density=True, bins=logbins)
+    plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
+    plt.ylabel("PDF")
+    plt.xscale("log")
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
+    plt.show()
+
+
 def test_z() -> None:
     z = np.linspace(-300e-3, 300e-3, 1000)  # kpc
     arr = give_z(1000)
@@ -374,12 +461,15 @@ def give_is_inside_proportion(
 if __name__ == "__main__":
     # TESTS
 
-    test_z()
-    test_ST_radius()
-    test_density_profile()
-    test_initial_period()
-    test_kick_velocity()
-    test_pick_arm()
+    # test_z()
+    # test_ST_radius()
+    # test_density_profile()
+    # test_initial_period()
+    # test_kick_velocity()
+    # test_pick_arm()
+
+    test_E_SN()
+    test_n_ISM()
 
     # create_galactic_coordinates(1e4)
 
