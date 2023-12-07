@@ -202,7 +202,7 @@ def give_mass_loss_WC(M: np.ndarray) -> np.ndarray:
 
 def give_bubble_density(
     M: np.ndarray,
-    n_ISM: float = 1,
+    n_ISM: float = 0.069,
     t: float = 1e6
 ) -> np.ndarray:
     """Bubble density in cm-3"""
@@ -220,7 +220,7 @@ def give_bubble_density(
 
 def give_bubble_radius(
     M: np.ndarray,
-    n_ISM: float = 1,
+    n_ISM: float = 0.069,
     t: int = None
 ) -> np.ndarray:
     """Bubble radius in pc. Parametrization from Weaver 1988."""
@@ -238,7 +238,7 @@ def give_bubble_radius(
 
 def give_wind_radius(
     M: np.ndarray,
-    n_ISM: float = 1,
+    n_ISM: float = 0.069,
     t: int = None
 ) -> np.ndarray:
     """Wind radius in pc"""
@@ -273,8 +273,8 @@ def give_wind_radius(
 
 
 def give_SN_PDS_time(
-    E: float = 1e51,
-    n: float = 1,
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1
 ) -> float:
     """Formula and parameters from Cioffi et al. 1988.
@@ -285,8 +285,8 @@ def give_SN_PDS_time(
 
 def give_SN_PDS_radius(
     t: np.ndarray,
-    E: float = 1e51,
-    n: float = 1,
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1
 ) -> np.ndarray:
     """Formula and parameters from Cioffi et al. 1988"""
@@ -299,8 +299,8 @@ def give_SN_PDS_radius(
 
 def give_SN_ST_radius(
     t: float = 100e3,
-    E: float = 1e51,
-    n: float = 1
+    E: float = 2.7e50,
+    n: float = 0.069
 ) -> float:
     """
     Naive interpretation of the Sedov-Taylor phase of the SNR,
@@ -318,8 +318,8 @@ def give_ISM_sound_speed(T: float = 1e2) -> float:
 
 def give_SN_merge_time(
     c_s: float = 1e6,
-    E: float = 1e51,
-    n: float = 1,
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1
 ) -> float:
     """Parametrization from Cioffi et al. 1988"""
@@ -332,8 +332,8 @@ def give_SN_merge_time(
 
 def give_SN_radius(
     t: np.ndarray = 100e3,
-    E: float = 1e51,
-    n: float = 1,
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1,
     Mej: float = 1
 ) -> float:
@@ -355,8 +355,8 @@ def give_SN_radius(
 
 
 def give_SN_MCS_time(
-    E: float = 1e51, # erg
-    n: float = 1, # cm-3
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1, # metallicity
     Mej: float = 1 # Msol
 ) -> float:
@@ -368,8 +368,8 @@ def give_SN_MCS_time(
 
 def give_SN_MCS_radius(
     t: np.ndarray = 100e3,
-    E: float = 1e51,
-    n: float = 1,
+    E: float = 2.7e50,
+    n: float = 0.069,
     chi: float = 1,
     Mej: float = 1
 ) -> np.ndarray:

@@ -79,8 +79,8 @@ def make_maxwellian(vv: float, sigma: float) -> float:
 
 def give_SNR_radius(
         t: np.ndarray = 100e3,
-        E: float = 1e51,
-        n: float = 1
+        E: float = 2.7e50,
+        n: float = 0.069
 ) -> np.ndarray:
     """Naive interpretation of the SNR, time in yr"""
     # ST phase, IMPLEMENT SNOWPLOUGH PHASE
@@ -198,8 +198,8 @@ def blur_phi(phi: np.ndarray) -> np.ndarray:
 def give_ST_radius(t: np.ndarray) -> np.ndarray:
     """t in yr, from ST paper"""
     m_p = 1.6726e-24  # g
-    E = 1e51  # erg.s-1
-    rho_ISM = m_p * 1  # g.cm-3
+    E = 2.7e50  # erg.s-1
+    rho_ISM = m_p * 0.069  # g.cm-3
     t = t * np.pi * 1e7  # s
     r = (2.026*E/rho_ISM)**(1/5)*t**(2/5)
     return r/3e18  # pc

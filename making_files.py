@@ -4,6 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
+import scipy.integrate as inte
 import os
 
 
@@ -28,35 +29,67 @@ def fit_gaussian(x: np.ndarray) -> np.ndarray:
                                bounds=((0, 0, 0), (100, 1000, 1000)))
     mu, sigma, A = pOpt
     dmu, dsigma, dA = np.sqrt(np.diag(pCov))
-    print(mu, sigma, A)
     return mu, sigma, A, edges
 
+def shortest_interval(x, y, beta):
+    deltax = 1
 
-def shortest_interval_points(x: np.ndarray) -> np.ndarray:
+    maxx = len(x)-2
 
-    hist, edges = binning(x)
+    mode = np.max(y)
+    p = np.where(y == mode)[0][0]
+    xleft = p
+    xright = p
+    integral = mode * deltax
+    all_count = np.sum(y)
 
-    A = 0
-    all_count = np.sum(hist)
-    imax, iL, iU = np.argmax(hist), 0, 0
-    threshold = np.max(hist)
+    while (integral < beta):
+        if xright == maxx:
+            yright = y[xright]
+        else:
+            yright = y[xright + 1]
 
-    while A/all_count < 0.90:  # 2 sigma
-        threshold -= 1
-        if imax-iL > 1:
-            while hist[imax-iL] > threshold:
-                iL += 1
-        if imax+iU > 1:
-            while hist[imax+iU] > threshold:
-                iU += 1
-        A = np.sum(hist[imax-iL:imax+iU])
+        if xleft == 0:
+            yleft = y[xleft]
+        else:
+            yleft = y[xleft - 1]
 
-    return edges[imax-iL], edges[imax+iU], A/all_count
+        intleft = yleft * deltax
+        intright = yright * deltax
+
+        if (intleft > intright) and xleft != 0:
+            integral += intleft
+            if xleft == 0:
+                xleft = 0
+            else:
+                xleft += -1
+
+        elif (intleft < intright) and xright != maxx:
+            integral += intright
+            if xright == maxx:
+                xright = maxx
+            else:
+                xright += +1
+
+        else:
+            integral += yleft * deltax + yright * deltax
+            if xright == maxx:
+                xright = maxx
+            else:
+                xright += +1
+
+            if xleft == 0:
+                xleft = 0
+            else:
+                xleft += -1
+
+    # print(x[xleft], x[xright], integral/all_count)
+    return x[xleft], x[xright], integral/all_count
 
 
 def make_galaxies(n: int = 20) -> None:
 
-    # Only add new galaxies to the directory withoutremoving the ancient ones.
+    # Only add new galaxies to the directory without removing the ancient ones.
     init = int(len(os.listdir('./Galaxies'))/2)
 
     print(n)
@@ -144,24 +177,32 @@ def give_inside_proportion_with_time_same_age() -> None:
 
     fig = plt.figure()
 
+    number_of_pulsars = 100
+
     for i in range(len(phases)):
-        mu_arr, sigma_arr = np.array([]), np.array([])
+        mu_arr = np.array([])
+        xL_arr, xU_arr = np.array([]), np.array([])
 
         for t_ in tqdm(t_arr):
             proportion_arr = np.array([])
             for _ in range(100):
-                proportion_arr = np.append(
-                    proportion_arr,
-                    zeroordergalaxy.give_is_inside_proportion(t_, n=10,
-                                                              phase=phases[i]))
-            mu, sigma, A, edges = fit_gaussian(proportion_arr)
-            mu_arr = np.append(mu_arr, mu)
-            sigma_arr = np.append(sigma_arr, sigma)
-            mu_arr = np.append(mu_arr, np.mean(proportion_arr))
+                result = 0
+                while result == 0:
+                    result = zeroordergalaxy.give_is_inside_proportion(
+                        t_, n=number_of_pulsars, phase=phases[i])
+                proportion_arr = np.append(proportion_arr, result)
+                
+            # Finding the most frequent percentage and 2 sigma interval
+            x = np.histogram(proportion_arr,
+                             bins = int(np.max([5, number_of_pulsars/5])))
+            mu_arr = np.append(mu_arr, x[1][np.argmax(x[0])])
+            xL, xU, A = shortest_interval(x[1], x[0], 0.9545*number_of_pulsars)
+            xL_arr = np.append(xL_arr, xL)
+            xU_arr = np.append(xU_arr, xU)
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"{phases[i]}")
-        plt.fill_between(t_arr/1e3, mu_arr-2*sigma_arr, mu_arr+2*sigma_arr,
+        plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
                          alpha=0.2, color=colors[i],
                          label=r"2$\sigma$ "f"{phases[i]}")
 
@@ -188,25 +229,33 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
     fig = plt.figure()
 
+    number_of_pulsars = 100
+
     for i in range(len(variable)):
-        mu_arr, sigma_arr = np.array([]), np.array([])
+        mu_arr = np.array([])
+        xL_arr, xU_arr = np.array([]), np.array([])
 
         for t_ in tqdm(t_arr):
             proportion_arr = np.array([])
             for _ in range(100):
-                proportion_arr = np.append(
-                    proportion_arr,
-                    zeroordergalaxy.give_is_inside_proportion(
-                        t_, n=100, phase="PDS",
-                        variable_parameters=variable[i]))
-            mu, sigma, A, edges = fit_gaussian(proportion_arr)
-            mu_arr = np.append(mu_arr, mu)
-            sigma_arr = np.append(sigma_arr, sigma)
-            # mu_arr = np.append(mu_arr, np.mean(proportion_arr))
+                result = 0
+                while result == 0:
+                    result = zeroordergalaxy.give_is_inside_proportion(
+                        t_, n=number_of_pulsars, phase="PDS",
+                        variable_parameters=variable[i])
+                proportion_arr = np.append(proportion_arr, result)
+                
+            # Finding the most frequent percentage and 2 sigma interval
+            x = np.histogram(proportion_arr,
+                             bins = int(np.max([5, number_of_pulsars/5])))
+            mu_arr = np.append(mu_arr, x[1][np.argmax(x[0])])
+            xL, xU, A = shortest_interval(x[1], x[0], 0.9545*number_of_pulsars)
+            xL_arr = np.append(xL_arr, xL)
+            xU_arr = np.append(xU_arr, xU)
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"Parameters changing {variable[i]}")
-        plt.fill_between(t_arr/1e3, mu_arr-2*sigma_arr, mu_arr+2*sigma_arr,
+        plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
                          alpha=0.2, color=colors[i],
                          label=r"2$\sigma$ "f"{variable[i]}")
 
@@ -226,14 +275,14 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.show()
 
 
-t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 5, endpoint=True)
+t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
 
 if __name__ == "__main__":
 
     # make_galaxies()
     # give_inside_proportion()
 
-    # give_inside_proportion_with_time_same_age()
+    give_inside_proportion_with_time_same_age()
     give_inside_proportion_with_time_varying_parameters()
 
     1

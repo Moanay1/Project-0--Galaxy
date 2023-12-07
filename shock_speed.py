@@ -68,7 +68,7 @@ def give_speed_radius_analytical(
         r: np.ndarray,
         r_w: float,
         r_b: float,
-        E: float = 1e51,
+        E: float = 2.7e50,
         M: float = 1.989e33
 ) -> np.ndarray:
     """Gives the speed of the shock at a radius `r`, for a SNR
@@ -217,7 +217,7 @@ def give_time_radius_integration2(
         r_w: float,
         r_b: float,
         t: float,
-        E: float = 1e51,
+        E: float = 2.7e50,
         M: float = 1
 ) -> float:
     """Finds the relationship between time and position of the SNR by
@@ -372,9 +372,9 @@ u_w = 1e6  # cm.s-1
 M_loss = 1e-5*Msol/yr  # g.s-1
 m_p = 1.6726e-24  # g
 rho_b = m_p*1e-2  # g.cm-3
-rho_ISM = m_p*1  # g.cm-3
+rho_ISM = m_p*0.069  # g.cm-3
 xi = 0.1  # fraction of energy that goes into the acceleration of CRs
-E_SN = 1e51  # erg
+E_SN = 2.7e50  # erg
 gamma = 5/3  # adiabatic coefficient for monoatomic gas
 alpha = 6*(gamma-1)/(gamma+1)
 

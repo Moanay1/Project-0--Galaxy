@@ -13,7 +13,7 @@ import shock_speed
 def give_SNR_radius(
         t_age: np.ndarray,
         M_MS: np.ndarray = None,
-        E_SN: float = 1e51,
+        E_SN: float = 2.7e50,
         M_ej: float = 1
 ) -> np.ndarray:
     """Gives the SNR radius in pc.
