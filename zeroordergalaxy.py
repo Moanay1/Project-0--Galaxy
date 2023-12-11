@@ -39,8 +39,10 @@ def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     Returns:
         float: lognormal value
     """
-    return 1/np.sqrt(2*np.pi*sigma * zz**2)\
-            * np.exp(-(np.log(zz)-mu)**2/(2*sigma))
+    normal_std = np.log10(sigma)
+    normal_mean = np.log(mu)
+    return 1/np.sqrt(2*np.pi*normal_std * zz**2)\
+            * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
 
 def give_E_SN(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the SN energy, following
@@ -53,9 +55,14 @@ def give_E_SN(n_: int = 1) -> np.ndarray:
         np.ndarray: erg, E_SN array
     """
     mu = 2.7e50 # erg
-    sigma = 3.51
+    sigma = 3.5
 
-    return np.random.lognormal(np.log(mu), np.log(sigma), n_)
+    normal_std = np.log10(sigma)
+    normal_mean = np.log(mu)
+
+    result = np.random.lognormal(normal_mean, normal_std, size=n_)
+
+    return result
 
 
 def give_n_ISM(n_: int = 1) -> np.ndarray:
@@ -70,7 +77,13 @@ def give_n_ISM(n_: int = 1) -> np.ndarray:
     """
     mu = 0.069 # cm-3
     sigma = 5.1
-    return np.random.lognormal(np.log(mu), np.log(sigma), n_)
+
+    normal_std = np.log10(sigma)
+    normal_mean = np.log(mu)
+
+    result = np.random.lognormal(normal_mean, normal_std, size=n_)
+
+    return result
 
 
 def make_maxwellian(vv: float, sigma: float) -> float:
@@ -250,16 +263,17 @@ def test_ST_radius() -> None:
 
 
 def test_E_SN() -> None:
-    z = np.logspace(48, 52, 1000)  # erg
-    arr = give_E_SN(1000)
+    z = np.logspace(48, 52, 100)  # erg
+    arr = give_E_SN(10000)
+    print(arr)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, make_lognormal(z, np.log(2.7e50), np.log(3.5))/inte.quad(
-    lambda x: make_lognormal(x, np.log(2.7e50), np.log(3.5)), 1e48, 1e52)[0])
+    plt.plot(z, make_lognormal(z, 2.7e50, 3.5)/inte.quad(
+    lambda x: make_lognormal(x, 2.7e50, 3.5), 1e48, 1e52)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
@@ -279,8 +293,8 @@ def test_n_ISM() -> None:
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, make_lognormal(z, np.log(0.069), np.log(5.1))/inte.quad(
-        lambda x: make_lognormal(x, np.log(0.069), np.log(5.1)), 1e-4, 1e1)[0])
+    plt.plot(z, make_lognormal(z, 0.069, 5.1)/inte.quad(
+        lambda x: make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")
@@ -437,7 +451,9 @@ def give_is_inside_proportion(
         t: float = 100e3,
         n: int = 100,
         phase: str = "ST",
-        variable_parameters: bool = False
+        variable_parameters: bool = False,
+        E = 2.7e50,
+        n_ = 0.069
 ) -> float:
     """Choose phase between "ST" and "PDS"
     (for pressure driven snowplough)."""
@@ -453,10 +469,10 @@ def give_is_inside_proportion(
             r_SNR = SN.give_SN_radius(t=t, E=E_SN, n=n_ISM)
     else:
         if phase == "ST":
-            r_SNR = give_SNR_radius(t=t)  # Only with ST
+            r_SNR = give_SNR_radius(t=t, E=E, n=n_)  # Only with ST
         elif phase == "PDS":
             # With snowplough phase and merging time
-            r_SNR = SN.give_SN_radius(t=t)
+            r_SNR = SN.give_SN_radius(t=t, E=E, n=n_)
 
     for n_ in range(n):
         vk_arr = np.append(vk_arr, give_kick_velocity())

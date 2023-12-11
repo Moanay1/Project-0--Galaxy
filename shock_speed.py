@@ -198,7 +198,7 @@ def give_time_radius_integration(
     Returns:
         np.ndarray: time (in s) and radius (in cm) arrays.
     """
-    r_arr = np.logspace(16, np.log10(1e23), n)
+    r_arr = np.logspace(16, 23, int(n))
     t_arr = []
 
     for r_element in r_arr:
@@ -343,7 +343,7 @@ def plot_speed_time_integration() -> None:
 
     r_s = 1000*pc  # cm
 
-    t_arr, r_arr = give_time_radius_integration(r_w, r_b, r_s)
+    t_arr, r_arr = give_time_radius_integration(r_w, r_b)
     u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
     t_arr = t_arr/(1e3*yr)  # kyr
 
@@ -384,8 +384,8 @@ if __name__ == "__main__":
 
     # plot_mass_radius_analytical()
     # plot_speed_radius_analytical()
-    plot_radius_time_integration()
-    # plot_speed_time_integration()
+    # plot_radius_time_integration()
+    plot_speed_time_integration()
 
     #  print(give_speed_time_integration(1))
 

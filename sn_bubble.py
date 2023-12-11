@@ -306,8 +306,8 @@ def give_SN_ST_radius(
     Naive interpretation of the Sedov-Taylor phase of the SNR,
     time in yr"""
     # ST phase
-    r = 0.3 * (E/1e51)**(1/5) * (n/1)**(-1/5) * (t/1)**(2/5)  # pc
-    return r  # pc
+    r = 2.026**(1/5) * (E)**(1/5) * (n*m_p)**(-1/5) * (t*yr)**(2/5)  # cm
+    return r/pc  # pc
 
 
 def give_ISM_sound_speed(T: float = 1e2) -> float:
@@ -361,7 +361,7 @@ def give_SN_MCS_time(
     Mej: float = 1 # Msol
 ) -> float:
     t_PDS = give_SN_PDS_time(E, n, chi)
-    t = 61 * t_PDS * (10*(E/1e51/Mej)**1/2)**3 * \
+    t = 61 * t_PDS * (7)**3 * \
         chi**(-3/14) * n**(-3/7) * (E/1e51)**(-3/14)  # yr
     return t  # yr
 
@@ -376,31 +376,111 @@ def give_SN_MCS_radius(
     t_PDS = give_SN_PDS_time(E, n, chi)
     t_MCS = give_SN_MCS_time(E, n, chi, Mej)
     r_PDS = give_SN_PDS_radius(E, n, chi)
-    r_MCS = (4.66*t_MCS/t_PDS*(1-0.939*(t_MCS/t_PDS) **
+    r_MCS = (4.66*(t_MCS/t_PDS)*(1-0.939*(t_MCS/t_PDS) **
              (-0.17) - 0.153*(t_MCS/t_PDS)**(-1)))**(1/4)
     r = r_PDS * (4.66*(t/t_PDS - t_MCS/t_PDS) *
-                 (1-0.779*(t_MCS/t_PDS)**(-0.17)) + r_MCS**4)**(1/4)
+                 (1 - 0.779*(t_MCS/t_PDS)**(-0.17)) + r_MCS**4)**(1/4)
     return r
 
 
-def plot_SN_radius(E: float = 1e51, n: float = 1, chi: float = 2) -> None:
+def plot_SN_radius_varying_E(n: float = 0.069, chi: float = 1) -> None:
+    """From Cioffi et al. 1988"""
 
-    t_max = give_SN_merge_time(give_ISM_sound_speed(), E, n, chi)
-    t_arr = np.logspace(1, 7, 50)  # yr
-    r_arr = np.array([give_SN_radius(t_, E, n, chi) for t_ in t_arr])
-    t_PDS = give_SN_PDS_time(E, n, chi)
+    E_arr = np.array([0.1, 0.5, 1, 2, 5])*1e51
 
     fig = plt.figure()
-    plt.plot(t_arr, r_arr, linestyle="-", color="black",
-             label="From Cioffi et al. 1988")
-    plt.axvline(x=t_PDS, linestyle="--", color="red",
-                label=r"$t_\mathrm{PDS} =$"f"${t_PDS/1e3:.1f}$"r" kyr")
+
+    for E_ in E_arr:
+        t_max = give_SN_merge_time(give_ISM_sound_speed(), E_, n, chi)
+        t_arr = np.logspace(1, 7, 500)  # yr
+        r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
+        t_PDS = give_SN_PDS_time(E_, n, chi)
+
+
+        plt.plot(t_arr, r_arr, linestyle="-",
+                label=r"$E =$"f"${E_}$"r" erg")
+        # plt.axvline(x=t_PDS, linestyle="--",
+        #             label=r"$t_\mathrm{PDS} =$"f"${t_PDS/1e3:.1f}$"r" kyr")
     plt.xscale("log")
     plt.yscale("log")
     plt.legend(fontsize=12)
     plt.grid()
     plt.xlabel(r"$t$ [yr]")
     plt.ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(t)_E.pdf")
+    plt.show()
+
+
+def plot_SN_radius_varying_n(E: float = 2.7e50, chi: float = 1) -> None:
+    """From Cioffi et al. 1988"""
+
+    n_arr = np.array([0.01, 0.05, 0.069, 0.1, 0.5])
+
+    fig = plt.figure()
+
+    for n_ in n_arr:
+        t_max = give_SN_merge_time(give_ISM_sound_speed(), E, n_, chi)
+        t_arr = np.logspace(1, 7, 500)  # yr
+        r_arr = np.array([give_SN_radius(t_, E, n_, chi) for t_ in t_arr])
+        t_PDS = give_SN_PDS_time(E, n_, chi)
+
+    
+        plt.plot(t_arr, r_arr, linestyle="-",
+                label=r"$n_\mathrm{ISM} =$"f"${n_}$"r" cm$^{-3}$")
+        # plt.axvline(x=t_PDS, linestyle="--",
+        #             label=r"$t_\mathrm{PDS} =$"f"${t_PDS/1e3:.1f}$"r" kyr")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend(fontsize=12)
+    plt.grid()
+    plt.xlabel(r"$t$ [yr]")
+    plt.ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(t)_n.pdf")
+    plt.show()
+
+
+def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
+    """From Cioffi et al. 1988"""
+
+    n_arr = np.array([0.01, 0.05, 0.069, 0.1, 0.5])
+
+    fig, ax = plt.subplots(1, 2, sharey=True)
+
+    for n_ in n_arr:
+        t_max = give_SN_merge_time(give_ISM_sound_speed(), E, n_, chi)
+        t_arr = np.logspace(1, 7, 500)  # yr
+        r_arr = np.array([give_SN_radius(t_, E, n_, chi) for t_ in t_arr])
+        t_PDS = give_SN_PDS_time(E, n_, chi)
+
+    
+        ax[0].plot(t_arr, r_arr, linestyle="-",
+                label=r"$n_\mathrm{ISM} =$"f"${n_}$"r" cm$^{-3}$")
+        
+    E_arr = np.array([0.1, 0.5, 1, 2, 5])*1e51
+
+    for E_ in E_arr:
+        t_max = give_SN_merge_time(give_ISM_sound_speed(), E_, n, chi)
+        t_arr = np.logspace(1, 7, 500)  # yr
+        r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
+        t_PDS = give_SN_PDS_time(E_, n, chi)
+
+
+        ax[1].plot(t_arr, r_arr, linestyle="-",
+                label=r"$E =$"f"${E_}$"r" erg")
+        
+
+    ax[0].set_xscale("log")
+    ax[1].set_xscale("log")
+    plt.yscale("log")
+    ax[0].legend(fontsize=12)
+    ax[0].grid()
+    ax[1].legend(fontsize=12)
+    ax[1].grid()
+    ax[0].set_xlabel(r"$t$ [yr]")
+    ax[1].set_xlabel(r"$t$ [yr]")
+    ax[0].set_ylabel(r"$R_\mathrm{s}(t)$ [pc]")
     fig.tight_layout()
     plt.savefig("Project Summary/Images/R_SN(t).pdf")
     plt.show()
@@ -548,6 +628,9 @@ gamma = 5/3  # adiabatic coefficient for monoatomic gas
 m_p = 1.6726e-24  # g
 mu_p = 1.4  # molecular fraction in the ISM
 kB = 1.3807e-16  # erg/K Boltzmann constant
+pc = 3e18  # cm/pc
+Msol = 1.989e33  # g/Msol
+yr = np.pi * 1e7  # s/yr
 
 if __name__ == "__main__":
     # TESTS AND PLOTS

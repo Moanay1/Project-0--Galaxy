@@ -86,6 +86,9 @@ def shortest_interval(x, y, beta):
     # print(x[xleft], x[xright], integral/all_count)
     return x[xleft], x[xright], integral/all_count
 
+def argmedian(x):
+  return np.argpartition(x, len(x) // 2)[len(x) // 2]
+
 
 def make_galaxies(n: int = 20) -> None:
 
@@ -195,10 +198,16 @@ def give_inside_proportion_with_time_same_age() -> None:
             # Finding the most frequent percentage and 2 sigma interval
             x = np.histogram(proportion_arr,
                              bins = int(np.max([5, number_of_pulsars/5])))
-            mu_arr = np.append(mu_arr, x[1][np.argmax(x[0])])
-            xL, xU, A = shortest_interval(x[1], x[0], 0.9545*number_of_pulsars)
+            
+            hist, edges = x[0], x[1]
+            
+            xL, xU, A = shortest_interval(edges, hist,
+                                          0.9545*number_of_pulsars)
             xL_arr = np.append(xL_arr, xL)
             xU_arr = np.append(xU_arr, xU)
+
+            edges = (edges + (edges[1] - edges[0])/2)[:-1]
+            mu_arr = np.append(mu_arr, np.average(edges, weights=hist))
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"{phases[i]}")
@@ -217,8 +226,7 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time\
-                _same_age_comparison.pdf")
+    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age_comparison.pdf")
     plt.show()
 
 
@@ -226,6 +234,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
     colors = ["blue", "orange"]
     variable = [True, False]
+    linestyles = ["-", "--"]
 
     fig = plt.figure()
 
@@ -248,10 +257,29 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
             # Finding the most frequent percentage and 2 sigma interval
             x = np.histogram(proportion_arr,
                              bins = int(np.max([5, number_of_pulsars/5])))
-            mu_arr = np.append(mu_arr, x[1][np.argmax(x[0])])
-            xL, xU, A = shortest_interval(x[1], x[0], 0.9545*number_of_pulsars)
+            
+            hist, edges = x[0], x[1]
+            
+            xL, xU, A = shortest_interval(edges, hist,
+                                          0.9545*number_of_pulsars)
             xL_arr = np.append(xL_arr, xL)
             xU_arr = np.append(xU_arr, xU)
+
+            edges = (edges + (edges[1] - edges[0])/2)[:-1]
+            mu_arr = np.append(mu_arr, np.average(edges, weights=hist))
+
+
+
+    #         plt.hist(proportion_arr, histtype="step", linestyle=linestyles[i],
+    #                  color=plt.cm.rainbow(t_/np.max(t_arr)),
+    #                  label="$t = {}$ kyr".format(t_/1e3))
+    # plt.xlabel("Pulsars inside their SNR [%]")
+    # fig.tight_layout()
+    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_histograms.pdf")  
+    # plt.show()
+    
+
+    
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"Parameters changing {variable[i]}")
@@ -270,8 +298,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time\
-                _carying parameters.pdf")
+    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying parameters.pdf")
     plt.show()
 
 
@@ -282,7 +309,7 @@ if __name__ == "__main__":
     # make_galaxies()
     # give_inside_proportion()
 
-    give_inside_proportion_with_time_same_age()
+    # give_inside_proportion_with_time_same_age()
     give_inside_proportion_with_time_varying_parameters()
 
     1
