@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import scipy.integrate as inte
 import random
 
-np.set_printoptions(precision=1)
+np.set_printoptions(precision=3)
 plt.rcParams.update({'font.size': 17})
 plt.rcParams["font.family"] = "serif"
 
@@ -330,35 +331,10 @@ def give_SN_merge_time(
     return t  # yr
 
 
-def give_SN_radius(
-    t: np.ndarray = 100e3,
-    E: float = 2.7e50,
-    n: float = 0.069,
-    chi: float = 1,
-    Mej: float = 1
-) -> float:
-    """Decides the phase of the SNR and gives the appropriate radius
-    in pc. Requires a time in yr"""
-    # Determining the SNR stage
-    t_PDS = give_SN_PDS_time(E, n, chi)
-    t_MCS = give_SN_MCS_time(E, n, chi, Mej)
-    t_max = give_SN_merge_time(give_ISM_sound_speed())
-    if t < t_PDS:
-        r = give_SN_ST_radius(t, E, n)
-    elif t < t_MCS:
-        r = give_SN_PDS_radius(t, E, n, chi)
-    elif t < t_max:
-        r = give_SN_MCS_radius(t, E, n, chi, Mej)
-    if t > t_max:
-        r = 0
-    return r
-
-
 def give_SN_MCS_time(
     E: float = 2.7e50,
     n: float = 0.069,
     chi: float = 1, # metallicity
-    Mej: float = 1 # Msol
 ) -> float:
     t_PDS = give_SN_PDS_time(E, n, chi)
     t = 61 * t_PDS * (7)**3 * \
@@ -371,15 +347,37 @@ def give_SN_MCS_radius(
     E: float = 2.7e50,
     n: float = 0.069,
     chi: float = 1,
-    Mej: float = 1
 ) -> np.ndarray:
     t_PDS = give_SN_PDS_time(E, n, chi)
-    t_MCS = give_SN_MCS_time(E, n, chi, Mej)
+    t_MCS = give_SN_MCS_time(E, n, chi)
     r_PDS = give_SN_PDS_radius(E, n, chi)
     r_MCS = (4.66*(t_MCS/t_PDS)*(1-0.939*(t_MCS/t_PDS) **
              (-0.17) - 0.153*(t_MCS/t_PDS)**(-1)))**(1/4)
     r = r_PDS * (4.66*(t/t_PDS - t_MCS/t_PDS) *
                  (1 - 0.779*(t_MCS/t_PDS)**(-0.17)) + r_MCS**4)**(1/4)
+    return r
+
+
+def give_SN_radius(
+    t: np.ndarray = 100e3,
+    E: float = 2.7e50,
+    n: float = 0.069,
+    chi: float = 1,
+) -> float:
+    """Decides the phase of the SNR and gives the appropriate radius
+    in pc. Requires a time in yr"""
+    # Determining the SNR stage
+    t_PDS = give_SN_PDS_time(E, n, chi)
+    t_MCS = give_SN_MCS_time(E, n, chi)
+    t_max = give_SN_merge_time(give_ISM_sound_speed())
+    if t < t_PDS:
+        r = give_SN_ST_radius(t, E, n)
+    elif t < t_MCS:
+        r = give_SN_PDS_radius(t, E, n, chi)
+    elif t < t_max:
+        r = give_SN_MCS_radius(t, E, n, chi)
+    if t > t_max:
+        r = 0
     return r
 
 
@@ -453,7 +451,6 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
         t_arr = np.logspace(1, 7, 500)  # yr
         r_arr = np.array([give_SN_radius(t_, E, n_, chi) for t_ in t_arr])
         t_PDS = give_SN_PDS_time(E, n_, chi)
-
     
         ax[0].plot(t_arr, r_arr, linestyle="-",
                 label=r"$n_\mathrm{ISM} =$"f"${n_}$"r" cm$^{-3}$")
@@ -466,10 +463,8 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
         r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
         t_PDS = give_SN_PDS_time(E_, n, chi)
 
-
         ax[1].plot(t_arr, r_arr, linestyle="-",
                 label=r"$E =$"f"${E_}$"r" erg")
-        
 
     ax[0].set_xscale("log")
     ax[1].set_xscale("log")
@@ -483,6 +478,43 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     ax[0].set_ylabel(r"$R_\mathrm{s}(t)$ [pc]")
     fig.tight_layout()
     plt.savefig("Project Summary/Images/R_SN(t).pdf")
+    plt.show()
+
+
+def plot_SN_radius_varying_parameters() -> None:
+    """From Cioffi et al. 1988"""
+
+    n_arr = np.logspace(np.log10(3e-3), np.log10(5e-1))
+    E_arr = np.logspace(np.log10(4e49), np.log10(4e51))
+
+    nn, EE = np.meshgrid(n_arr, E_arr)
+
+    radius_func = np.vectorize(give_SN_radius)
+    r = radius_func(342e3, E = EE, n = nn)
+
+    fig = plt.figure()
+
+    extent = [np.min(n_arr), np.max(n_arr), np.min(E_arr), np.max(E_arr)]
+
+    CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent)
+    plt.clabel(CS)
+
+    plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
+                 extent=extent, cmap="gist_rainbow")
+    
+    clb = plt.colorbar()
+    clb.set_label(r"$R_\mathrm{s}(E_\mathrm{SN}, n_\mathrm{ISM})$ [pc]")
+    clb.add_lines(CS)
+    tick_locator = mpl.ticker.MaxNLocator(nbins=5)
+    clb.locator = tick_locator
+    clb.update_ticks()
+
+    plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
+    plt.ylabel(r"$E_\mathrm{SN}$ [erg]")
+    plt.xscale("log")
+    plt.yscale("log")
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).pdf")
     plt.show()
 
 
@@ -642,7 +674,8 @@ if __name__ == "__main__":
     # plot_mass_loss()
     # plot_bubble_density()
     # plot_bubble_radius()
-    plot_SN_radius()
+    # plot_SN_radius()
+    plot_SN_radius_varying_parameters()
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)
