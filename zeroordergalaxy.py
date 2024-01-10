@@ -46,7 +46,7 @@ def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
 
 def give_E_SN(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the SN energy, following
-    Lehay et al. 2020.
+    Leahy et al. 2020.
 
     Args:
         n_ (int): Desired length of the final energy array
@@ -67,7 +67,7 @@ def give_E_SN(n_: int = 1) -> np.ndarray:
 
 def give_n_ISM(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the ISM density, following
-    Lehay et al. 2020.
+    Leahy et al. 2020.
 
     Args:
         n_ (int): Desired length of the final density array
@@ -473,6 +473,60 @@ def give_is_inside_proportion(
         elif phase == "PDS":
             # With snowplough phase and merging time
             r_SNR = SN.give_SN_radius(t=t, E=E, n=n_)
+
+    for n_ in range(n):
+        vk_arr = np.append(vk_arr, give_kick_velocity())
+        is_inside_arr = np.append(
+            is_inside_arr, is_pulsar_in_SNR(vk_arr[-1], r_SNR=r_SNR, t=t))
+
+    proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
+
+    return proportion
+
+
+def give_is_inside_proportion_varying_n_ISM(
+        t: float = 100e3,
+        n: int = 100,
+        phase: str = "ST",
+        E = 2.7e50
+) -> float:
+    """Choose phase between "ST" and "PDS"
+    (for pressure driven snowplough)."""
+    vk_arr, is_inside_arr = np.array([]), np.array([])
+
+    n_ISM = give_n_ISM()
+    if phase == "ST":
+        r_SNR = give_SNR_radius(t=t, E=E, n=n_ISM)  # Only with ST
+    elif phase == "PDS":
+        # With snowplough phase and merging time
+        r_SNR = SN.give_SN_radius(t=t, E=E, n=n_ISM)
+
+    for n_ in range(n):
+        vk_arr = np.append(vk_arr, give_kick_velocity())
+        is_inside_arr = np.append(
+            is_inside_arr, is_pulsar_in_SNR(vk_arr[-1], r_SNR=r_SNR, t=t))
+
+    proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
+
+    return proportion
+
+
+def give_is_inside_proportion_varying_E_SN(
+        t: float = 100e3,
+        n: int = 100,
+        phase: str = "ST",
+        n_ = 0.069
+) -> float:
+    """Choose phase between "ST" and "PDS"
+    (for pressure driven snowplough)."""
+    vk_arr, is_inside_arr = np.array([]), np.array([])
+
+    E_SN = give_E_SN()
+    if phase == "ST":
+        r_SNR = give_SNR_radius(t=t, E=E_SN, n=n_)  # Only with ST
+    elif phase == "PDS":
+        # With snowplough phase and merging time
+        r_SNR = SN.give_SN_radius(t=t, E=E_SN, n=n_)
 
     for n_ in range(n):
         vk_arr = np.append(vk_arr, give_kick_velocity())
