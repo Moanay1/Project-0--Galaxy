@@ -486,6 +486,36 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     plt.show()
 
 
+def plot_SN_radius_extreme_cases(chi: float = 1) -> None:
+    """From Cioffi et al. 1988"""
+
+    t_arr = np.logspace(1, 8, 500)  # yr
+
+    fig = plt.figure()
+
+    r_arr = np.array([give_SN_radius(t_, 8e49, 0.1, chi) for t_ in t_arr])
+    
+    plt.plot(t_arr, r_arr, linestyle="-",
+            label=r"$n_\mathrm{ISM} =$"f"${0.1}$"r" cm$^{-3}$"u"\n"
+                  r"$E_\mathrm{SN} =$"f"${8e49}$"r" erg")
+    
+    r_arr = np.array([give_SN_radius(t_, 6e50, 0.01, chi) for t_ in t_arr])
+        
+    plt.plot(t_arr, r_arr, linestyle="-",
+            label=r"$n_\mathrm{ISM} =$"f"${0.01}$"r" cm$^{-3}$"u"\n"
+                  r"$E_\mathrm{SN} =$"f"${6e50}$"r" erg")
+
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend(fontsize=12)
+    plt.grid()
+    plt.xlabel(r"$t$ [yr]")
+    plt.ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(t)_extreme_cases.pdf")
+    plt.show()
+
+
 def plot_SN_radius_varying_parameters() -> None:
     """From Cioffi et al. 1988"""
 
@@ -679,7 +709,8 @@ if __name__ == "__main__":
     # plot_mass_loss()
     # plot_bubble_density()
     # plot_bubble_radius()
-    plot_SN_radius()
+    # plot_SN_radius()
+    plot_SN_radius_extreme_cases()
     # plot_SN_radius_varying_parameters()
 
     # stars = Stars(1000, t=1e7)
