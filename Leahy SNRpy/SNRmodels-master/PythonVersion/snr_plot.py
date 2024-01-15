@@ -96,7 +96,12 @@ class OutputPlot(Figure):
 ##############################################################################################################################
     def clear_plot(self):
         """Remove all lines from plot."""
-        self.graph.lines.clear()
+        print(self.graph.lines)
+        try:
+            for line in self.graph.lines:
+                line.remove()
+        except:
+            self.graph.lines.remove()
 
 ##############################################################################################################################
     def update_plot(self):

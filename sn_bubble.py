@@ -292,8 +292,15 @@ def give_SN_PDS_radius(
 ) -> np.ndarray:
     """Formula and parameters from Cioffi et al. 1988"""
     t_PDS = give_SN_PDS_time(E, n, chi)  # yr
-    radius_beginning_PDS = 14.0 * \
-        (E/1e51)**(2/7) * (n)**(-3/7) * (chi)**(-1/7)  # pc
+    # Formula from Cioffi 1988 but that has a tiny shift with ST
+    # radius_beginning_PDS = 14.0 * \
+    #     (E/1e51)**(2/7) * (n)**(-3/7) * (chi)**(-1/7)  # pc
+    
+    # Artificially stick the two parts together
+    time_beginning_PDS = give_SN_PDS_time(E, n, chi)
+    radius_beginning_PDS = give_SN_ST_radius(time_beginning_PDS, E, n)
+
+
     r = radius_beginning_PDS * (4/3*t/t_PDS - 1/3)**(3/10)  # pc
     return r
 
@@ -447,10 +454,8 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     fig, ax = plt.subplots(1, 2, sharey=True)
 
     for n_ in n_arr:
-        t_max = give_SN_merge_time(give_ISM_sound_speed(), E, n_, chi)
         t_arr = np.logspace(1, 7, 500)  # yr
         r_arr = np.array([give_SN_radius(t_, E, n_, chi) for t_ in t_arr])
-        t_PDS = give_SN_PDS_time(E, n_, chi)
     
         ax[0].plot(t_arr, r_arr, linestyle="-",
                 label=r"$n_\mathrm{ISM} =$"f"${n_}$"r" cm$^{-3}$")
@@ -464,7 +469,7 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
         t_PDS = give_SN_PDS_time(E_, n, chi)
 
         ax[1].plot(t_arr, r_arr, linestyle="-",
-                label=r"$E =$"f"${E_}$"r" erg")
+                label=r"$E_\mathrm{SN} =$"f"${E_}$"r" erg")
 
     ax[0].set_xscale("log")
     ax[1].set_xscale("log")
@@ -674,8 +679,8 @@ if __name__ == "__main__":
     # plot_mass_loss()
     # plot_bubble_density()
     # plot_bubble_radius()
-    # plot_SN_radius()
-    plot_SN_radius_varying_parameters()
+    plot_SN_radius()
+    # plot_SN_radius_varying_parameters()
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)
