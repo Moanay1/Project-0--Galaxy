@@ -71,6 +71,24 @@ def test_IMF() -> None:
     plt.show()
 
 
+def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
+    """Returns the log normal function of `zz` for parameters `mu` and 
+    `sigma`.
+
+    Args:
+        zz (np.ndarray): point for which we want the lognormal
+        mu (float): mean
+        sigma (float): variance
+
+    Returns:
+        float: lognormal value
+    """
+    normal_std = np.log10(sigma)
+    normal_mean = np.log(mu)
+    return 1/np.sqrt(2*np.pi*normal_std * zz**2)\
+            * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
+
+
 def give_MS_time(
     M_init: np.ndarray,
     model: str = "Seo"
@@ -516,7 +534,8 @@ def plot_SN_radius_extreme_cases(chi: float = 1) -> None:
     plt.show()
 
 
-def plot_SN_radius_varying_parameters() -> None:
+def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
+                                      ) -> None:
     """From Cioffi et al. 1988"""
 
     n_arr = np.logspace(np.log10(3e-3), np.log10(5e-1))
@@ -525,7 +544,7 @@ def plot_SN_radius_varying_parameters() -> None:
     nn, EE = np.meshgrid(n_arr, E_arr)
 
     radius_func = np.vectorize(give_SN_radius)
-    r = radius_func(342e3, E = EE, n = nn)
+    r = radius_func(t, E = EE, n = nn)
 
     fig = plt.figure()
 
@@ -536,6 +555,11 @@ def plot_SN_radius_varying_parameters() -> None:
 
     plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
                  extent=extent, cmap="gist_rainbow")
+    
+    plt.vlines(0.069, ymin=np.min(E_arr), ymax=np.max(E_arr), 
+               linestyles="--", colors="black")
+    plt.hlines(2.7e50, xmin=np.min(n_arr), xmax=np.max(n_arr),
+               linestyles="--", colors="black")
     
     clb = plt.colorbar()
     clb.set_label(r"$R_\mathrm{s}(E_\mathrm{SN}, n_\mathrm{ISM})$ [pc]")
@@ -549,7 +573,7 @@ def plot_SN_radius_varying_parameters() -> None:
     plt.xscale("log")
     plt.yscale("log")
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).pdf")
+    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM)_{t}.pdf")
     plt.show()
 
 
@@ -698,6 +722,7 @@ kB = 1.3807e-16  # erg/K Boltzmann constant
 pc = 3e18  # cm/pc
 Msol = 1.989e33  # g/Msol
 yr = np.pi * 1e7  # s/yr
+AGE_GEMINGA = 342e3 # yr
 
 if __name__ == "__main__":
     # TESTS AND PLOTS
@@ -710,8 +735,8 @@ if __name__ == "__main__":
     # plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius()
-    plot_SN_radius_extreme_cases()
-    # plot_SN_radius_varying_parameters()
+    # plot_SN_radius_extreme_cases()
+    plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)

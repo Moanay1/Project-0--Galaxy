@@ -27,22 +27,6 @@ def make_gaussian(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     """
     return 1/np.sqrt(2*np.pi*sigma**2) * np.exp(-(zz-mu)**2/(2*sigma**2))
 
-def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
-    """Returns the log normal function of `zz` for parameters `mu` and 
-    `sigma`.
-
-    Args:
-        zz (np.ndarray): point for which we want the lognormal
-        mu (float): mean
-        sigma (float): variance
-
-    Returns:
-        float: lognormal value
-    """
-    normal_std = np.log10(sigma)
-    normal_mean = np.log(mu)
-    return 1/np.sqrt(2*np.pi*normal_std * zz**2)\
-            * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
 
 def give_E_SN(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the SN energy, following
@@ -272,8 +256,8 @@ def test_E_SN() -> None:
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, make_lognormal(z, 2.7e50, 3.5)/inte.quad(
-    lambda x: make_lognormal(x, 2.7e50, 3.5), 1e48, 1e52)[0])
+    plt.plot(z, SN.make_lognormal(z, 2.7e50, 3.5)/inte.quad(
+    lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e48, 1e52)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
@@ -293,8 +277,8 @@ def test_n_ISM() -> None:
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, make_lognormal(z, 0.069, 5.1)/inte.quad(
-        lambda x: make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
+    plt.plot(z, SN.make_lognormal(z, 0.069, 5.1)/inte.quad(
+        lambda x: SN.make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")
@@ -473,60 +457,6 @@ def give_is_inside_proportion(
         elif phase == "PDS":
             # With snowplough phase and merging time
             r_SNR = SN.give_SN_radius(t=t, E=E, n=n_)
-
-    for n_ in range(n):
-        vk_arr = np.append(vk_arr, give_kick_velocity())
-        is_inside_arr = np.append(
-            is_inside_arr, is_pulsar_in_SNR(vk_arr[-1], r_SNR=r_SNR, t=t))
-
-    proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
-
-    return proportion
-
-
-def give_is_inside_proportion_varying_n_ISM(
-        t: float = 100e3,
-        n: int = 100,
-        phase: str = "ST",
-        E = 2.7e50
-) -> float:
-    """Choose phase between "ST" and "PDS"
-    (for pressure driven snowplough)."""
-    vk_arr, is_inside_arr = np.array([]), np.array([])
-
-    n_ISM = give_n_ISM()
-    if phase == "ST":
-        r_SNR = give_SNR_radius(t=t, E=E, n=n_ISM)  # Only with ST
-    elif phase == "PDS":
-        # With snowplough phase and merging time
-        r_SNR = SN.give_SN_radius(t=t, E=E, n=n_ISM)
-
-    for n_ in range(n):
-        vk_arr = np.append(vk_arr, give_kick_velocity())
-        is_inside_arr = np.append(
-            is_inside_arr, is_pulsar_in_SNR(vk_arr[-1], r_SNR=r_SNR, t=t))
-
-    proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
-
-    return proportion
-
-
-def give_is_inside_proportion_varying_E_SN(
-        t: float = 100e3,
-        n: int = 100,
-        phase: str = "ST",
-        n_ = 0.069
-) -> float:
-    """Choose phase between "ST" and "PDS"
-    (for pressure driven snowplough)."""
-    vk_arr, is_inside_arr = np.array([]), np.array([])
-
-    E_SN = give_E_SN()
-    if phase == "ST":
-        r_SNR = give_SNR_radius(t=t, E=E_SN, n=n_)  # Only with ST
-    elif phase == "PDS":
-        # With snowplough phase and merging time
-        r_SNR = SN.give_SN_radius(t=t, E=E_SN, n=n_)
 
     for n_ in range(n):
         vk_arr = np.append(vk_arr, give_kick_velocity())
