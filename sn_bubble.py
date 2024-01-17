@@ -544,8 +544,8 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     """From Cioffi et al. 1988"""
 
     # Preparing the 2D
-    n_arr = np.logspace(np.log10(3e-3), np.log10(5e-1))
-    E_arr = np.logspace(np.log10(4e49), np.log10(4e51))
+    n_arr = np.logspace(np.log10(6e-3), np.log10(7e-1))
+    E_arr = np.logspace(np.log10(4e49), np.log10(2e51))
 
     nn, EE = np.meshgrid(n_arr, E_arr)
 
@@ -563,8 +563,6 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     E_pdf = make_lognormal(E_arr, 2.7e50, 3.5)/\
             np.max(make_lognormal(E_arr, 2.7e50, 3.5))
 
-    print(E_pdf)
-
     nn_pdf, EE_pdf = np.meshgrid(n_pdf, E_pdf)
 
     norm_func = np.vectorize(norm)
@@ -575,21 +573,22 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
 
     extent = [np.min(n_arr), np.max(n_arr), np.min(E_arr), np.max(E_arr)]
 
-    CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent)
-    plt.clabel(CS)
+    CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent,
+                     linestyles="-")
+    plt.clabel(CS, inline=False)
 
-    CS2 = plt.contour(nn, EE, pdf, extent=extent)
-    plt.clabel(CS2, fontsize=10)
+    CS2 = plt.contour(nn, EE, pdf, 4, extent=extent, colors="black",
+                      linestyles="--", linewidths=0.5)
+    plt.clabel(CS2, fontsize=10, inline=False)
 
-    plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
+    im = plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
                  extent=extent, cmap="gist_rainbow")
     
-    plt.vlines(0.069, ymin=np.min(E_arr), ymax=np.max(E_arr), 
-               linestyles="--", colors="black")
-    plt.hlines(2.7e50, xmin=np.min(n_arr), xmax=np.max(n_arr),
-               linestyles="--", colors="black")
+    plt.scatter(0.069, 2.7e50, c="blue")
+    plt.scatter(0.034, 8e50, c="red")
+
     
-    clb = plt.colorbar()
+    clb = plt.colorbar(im)
     clb.set_label(r"$R_\mathrm{s}(E_\mathrm{SN}, n_\mathrm{ISM})$ [pc]")
     clb.add_lines(CS)
     tick_locator = mpl.ticker.MaxNLocator(nbins=5)
