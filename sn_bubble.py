@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import scipy.integrate as inte
+from scipy.stats import lognorm
 import random
 
 np.set_printoptions(precision=3)
@@ -85,7 +86,7 @@ def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     """
     normal_std = np.log10(sigma)
     normal_mean = np.log(mu)
-    return 1/np.sqrt(2*np.pi*normal_std * zz**2)\
+    return 1/np.sqrt(2*np.pi*normal_std)\
             * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
 
 
@@ -534,10 +535,15 @@ def plot_SN_radius_extreme_cases(chi: float = 1) -> None:
     plt.show()
 
 
+def norm(x, y):
+    return np.sqrt(x**2 + y**2)
+
+
 def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
                                       ) -> None:
     """From Cioffi et al. 1988"""
 
+    # Preparing the 2D
     n_arr = np.logspace(np.log10(3e-3), np.log10(5e-1))
     E_arr = np.logspace(np.log10(4e49), np.log10(4e51))
 
@@ -546,12 +552,34 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     radius_func = np.vectorize(give_SN_radius)
     r = radius_func(t, E = EE, n = nn)
 
+    # dist = lognorm(s=5.1, loc=0.069)
+    # n_pdf = dist.pdf(n_arr)/np.max(dist.pdf(n_arr))
+
+    # dist = lognorm(s=3.5, loc=2.7e50)
+    # E_pdf = dist.pdf(E_arr)/np.max(dist.pdf(E_arr))
+
+    n_pdf = make_lognormal(n_arr, 0.069, 5.1)/\
+            np.max(make_lognormal(n_arr, 0.069, 5.1))
+    E_pdf = make_lognormal(E_arr, 2.7e50, 3.5)/\
+            np.max(make_lognormal(E_arr, 2.7e50, 3.5))
+
+    print(E_pdf)
+
+    nn_pdf, EE_pdf = np.meshgrid(n_pdf, E_pdf)
+
+    norm_func = np.vectorize(norm)
+    pdf = norm_func(nn_pdf, EE_pdf)/np.max(norm_func(nn_pdf, EE_pdf))
+
+
     fig = plt.figure()
 
     extent = [np.min(n_arr), np.max(n_arr), np.min(E_arr), np.max(E_arr)]
 
     CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent)
     plt.clabel(CS)
+
+    CS2 = plt.contour(nn, EE, pdf, extent=extent)
+    plt.clabel(CS2, fontsize=10)
 
     plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
                  extent=extent, cmap="gist_rainbow")

@@ -41,10 +41,8 @@ def give_E_SN(n_: int = 1) -> np.ndarray:
     mu = 2.7e50 # erg
     sigma = 3.5
 
-    normal_std = np.log10(sigma)
-    normal_mean = np.log(mu)
-
-    result = np.random.lognormal(normal_mean, normal_std, size=n_)
+    result = [give_random_value(lambda x:SN.make_lognormal(x, mu, sigma),
+                               1e49, 1e52) for _ in range(n_)]
 
     return result
 
@@ -62,10 +60,8 @@ def give_n_ISM(n_: int = 1) -> np.ndarray:
     mu = 0.069 # cm-3
     sigma = 5.1
 
-    normal_std = np.log10(sigma)
-    normal_mean = np.log(mu)
-
-    result = np.random.lognormal(normal_mean, normal_std, size=n_)
+    result = [give_random_value(lambda x:SN.make_lognormal(x, mu, sigma),
+                               1e-4, 1e1) for _ in range(n_)]
 
     return result
 
@@ -247,9 +243,8 @@ def test_ST_radius() -> None:
 
 
 def test_E_SN() -> None:
-    z = np.logspace(48, 52, 100)  # erg
+    z = np.logspace(49, 52, 1000)  # erg
     arr = give_E_SN(10000)
-    print(arr)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
@@ -257,14 +252,15 @@ def test_E_SN() -> None:
 
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 2.7e50, 3.5)/inte.quad(
-    lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e48, 1e52)[0])
+    lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e49, 1e52)[0])
+
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
+    # plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
     plt.show()
 
 
