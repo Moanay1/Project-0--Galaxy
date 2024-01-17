@@ -552,12 +552,6 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     radius_func = np.vectorize(give_SN_radius)
     r = radius_func(t, E = EE, n = nn)
 
-    # dist = lognorm(s=5.1, loc=0.069)
-    # n_pdf = dist.pdf(n_arr)/np.max(dist.pdf(n_arr))
-
-    # dist = lognorm(s=3.5, loc=2.7e50)
-    # E_pdf = dist.pdf(E_arr)/np.max(dist.pdf(E_arr))
-
     n_pdf = make_lognormal(n_arr, 0.069, 5.1)/\
             np.max(make_lognormal(n_arr, 0.069, 5.1))
     E_pdf = make_lognormal(E_arr, 2.7e50, 3.5)/\
@@ -600,7 +594,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     plt.xscale("log")
     plt.yscale("log")
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM)_{t}.pdf")
+    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).pdf")
     plt.show()
 
 
