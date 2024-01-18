@@ -505,6 +505,32 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     plt.show()
 
 
+def plot_SN_radius_comparison() -> None:
+    """From Cioffi et al. 1988"""
+
+    t_arr = np.logspace(1, 7, 500)  # yr
+    r_arr = np.array([give_SN_radius(t_, 2.7e50, 0.069, 1) for t_ in t_arr])
+
+    data = np.genfromtxt("data Leahy.txt", delimiter=',', skip_header=1)
+    t_leahy = data[:,0]
+    r_leahy = data[:,1]
+
+    fig = plt.figure()
+    
+    plt.plot(t_arr, r_arr, linestyle="-", label=r"This work")
+    plt.plot(t_leahy, r_leahy, linestyle='-', label=r"Leahy et al. 2017")
+    
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend(fontsize=12)
+    plt.grid()
+    plt.xlabel(r"$t$ [yr]")
+    plt.ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(t)_comparison.pdf")
+    plt.show()
+
+
 def plot_SN_radius_extreme_cases(chi: float = 1) -> None:
     """From Cioffi et al. 1988"""
 
@@ -765,7 +791,8 @@ if __name__ == "__main__":
     # plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius()
-    plot_SN_radius_extreme_cases()
+    plot_SN_radius_comparison()
+    # plot_SN_radius_extreme_cases()
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
     # stars = Stars(1000, t=1e7)

@@ -456,7 +456,16 @@ class SuperNovaRemnant:
             phases (list): list of SNR phases for current model
         """
 
+        f=open("data.txt", "w")
+        f.write("t [yr], r [pc]\n")
+
         plot_data = self.get_plot_data(phases)
+        print(plot_data["forward"])
+
+        for i in range(len(plot_data["forward"]["t"])):
+            f.write("{t:.2f}, {r:.2f}\n".format(t=plot_data["forward"]["t"][i],
+                                              r=plot_data["forward"]["r"][i]))
+
         # Clear previous lines
         self.graph.clear_plot()
         
