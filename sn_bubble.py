@@ -86,7 +86,7 @@ def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     """
     normal_std = np.log10(sigma)
     normal_mean = np.log(mu)
-    return 1/np.sqrt(2*np.pi*normal_std)\
+    return 1/np.sqrt(2*np.pi*normal_std**2)\
             * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
 
 
@@ -395,7 +395,7 @@ def give_SN_radius(
     # Determining the SNR stage
     t_PDS = give_SN_PDS_time(E, n, chi)
     t_MCS = give_SN_MCS_time(E, n, chi)
-    t_max = give_SN_merge_time(give_ISM_sound_speed())
+    t_max = give_SN_merge_time(give_ISM_sound_speed(100), E, n)
     if t < t_PDS:
         r = give_SN_ST_radius(t, E, n)
     elif t < t_MCS:
@@ -510,33 +510,41 @@ def plot_SN_radius_extreme_cases(chi: float = 1) -> None:
 
     t_arr = np.logspace(1, 8, 500)  # yr
 
-    fig = plt.figure()
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
+                                   gridspec_kw={'height_ratios': [3, 1]})
 
-    r_arr = np.array([give_SN_radius(t_, 8e49, 0.1, chi) for t_ in t_arr])
+    r_arr1 = np.array([give_SN_radius(t_, 2e50, 0.17, chi) for t_ in t_arr])
+    r_arr2 = np.array([give_SN_radius(t_, 5e50, 0.03, chi) for t_ in t_arr])
+    ratio = r_arr2/r_arr1
     
-    plt.plot(t_arr, r_arr, linestyle="-",
+    ax1.plot(t_arr, r_arr1, linestyle="-",
             label=r"$n_\mathrm{ISM} =$"f"${0.1}$"r" cm$^{-3}$"u"\n"
                   r"$E_\mathrm{SN} =$"f"${8e49}$"r" erg")
-    
-    r_arr = np.array([give_SN_radius(t_, 6e50, 0.01, chi) for t_ in t_arr])
         
-    plt.plot(t_arr, r_arr, linestyle="-",
+    ax1.plot(t_arr, r_arr2, linestyle="-",
             label=r"$n_\mathrm{ISM} =$"f"${0.01}$"r" cm$^{-3}$"u"\n"
                   r"$E_\mathrm{SN} =$"f"${6e50}$"r" erg")
+    
+    ax2.plot(t_arr, ratio, linestyle="-")
 
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.legend(fontsize=12)
-    plt.grid()
-    plt.xlabel(r"$t$ [yr]")
-    plt.ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.legend(fontsize=12)
+    ax1.grid()
+    ax2.grid()
+    ax2.set_xlabel(r"$t$ [yr]")
+    ax1.set_ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    ax2.set_ylabel(r"Ratio of max/min", fontsize=10)
     fig.tight_layout()
     plt.savefig("Project Summary/Images/R_SN(t)_extreme_cases.pdf")
     plt.show()
 
 
-def norm(x, y):
-    return np.sqrt(x**2 + y**2)
+def make_multivariate_lognormal(x, y, mu1, mu2, sigma1, sigma2):
+    mu1, mu2 = np.log(mu1), np.log(mu2)
+    sigma1, sigma2 = np.log10(sigma1), np.log10(sigma2)
+    return 1/(2*np.pi*sigma1*sigma2)*np.exp(-1/2*(
+        ((np.log(x) - mu1)/sigma1)**2 + ((np.log(y) - mu2)/sigma2)**2))
 
 
 def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
@@ -559,8 +567,9 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
 
     nn_pdf, EE_pdf = np.meshgrid(n_pdf, E_pdf)
 
-    norm_func = np.vectorize(norm)
-    pdf = norm_func(nn_pdf, EE_pdf)/np.max(norm_func(nn_pdf, EE_pdf))
+    make_func = np.vectorize(make_multivariate_lognormal)
+    pdf = make_func(nn, EE, 0.069, 2.7e50, 5.1, 3.5)/\
+          np.max(make_func(nn, EE, 0.069, 2.7e50, 5.1, 3.5))
 
 
     fig = plt.figure()
@@ -756,8 +765,8 @@ if __name__ == "__main__":
     # plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius()
-    # plot_SN_radius_extreme_cases()
-    plot_SN_radius_varying_parameters(AGE_GEMINGA)
+    plot_SN_radius_extreme_cases()
+    # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)

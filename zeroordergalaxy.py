@@ -259,13 +259,14 @@ def test_E_SN() -> None:
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
+    plt.grid()
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
+    plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
     plt.show()
 
 
 def test_n_ISM() -> None:
-    z = np.logspace(-4, 1, 1000)  # cm-3
+    z = np.logspace(-3, 1, 1000)  # cm-3
     arr = give_n_ISM(1000)
 
     # Uniform histogram in log x-scale
@@ -280,6 +281,7 @@ def test_n_ISM() -> None:
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
+    plt.grid()
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
     plt.show()
