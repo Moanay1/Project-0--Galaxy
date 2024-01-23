@@ -303,11 +303,10 @@ def give_characteristic_PSR_age(P, dPdt):
     return P / (2*dPdt) / (1e3*np.pi*1e7) # kyr
 
 
-def plot_catalog_PSR():
+def plot_catalog_PSR_in_SNR():
     data = np.genfromtxt("Pulsars_in_SNRs.txt", delimiter=",", skip_header=2)
     period = data[:,1]
     period_derivative = data[:,2]*1e-15
-    period_initial = data[:,3]*1e-3
 
     characteristic_age = give_characteristic_PSR_age(period, period_derivative)
     _, bins = np.histogram(characteristic_age, bins=20)
@@ -322,7 +321,7 @@ def plot_catalog_PSR():
     plt.yscale("log")
     plt.grid()
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/P_Pdot.pdf")
+    plt.savefig(r"Project Summary/Images/P_Pdot_in_SNR.pdf")
     plt.show()
 
     fig = plt.figure()
@@ -335,8 +334,82 @@ def plot_catalog_PSR():
     plt.grid()
     plt.legend()
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/PSR_age.pdf")
+    plt.savefig(r"Project Summary/Images/PSR_in_SNR_age.pdf")
     plt.show()
+
+
+def plot_catalog_PSR_out_SNR(): 
+    data = np.genfromtxt("Pulsars_out_SNRs.txt", delimiter=",", skip_header=2)
+    period = data[:,3]
+    period_derivative = np.abs(data[:,6])
+
+    characteristic_age = give_characteristic_PSR_age(period, period_derivative)
+    _, bins = np.histogram(characteristic_age, bins=200)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+
+    plt.scatter(period, period_derivative)
+    plt.xlabel(r"$P$ [s]")
+    plt.ylabel(r"$\mathrm{d}P/\mathrm{d}t$ [s/s]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/P_Pdot_out_SNR.pdf")
+    plt.show()
+
+    fig = plt.figure()
+
+    plt.hist(characteristic_age, bins=logbins, histtype="step",
+             label=r"Characteristic age")
+    plt.xlabel(r"$t$ [kyr]")
+    plt.ylabel(r"Number of pulsars")
+    plt.xscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/PSR_out_SNR_age.pdf")
+    plt.show()
+
+
+def plot_age_SNR():
+
+    fig = plt.figure()
+
+    data = np.genfromtxt("Pulsars_out_SNRs.txt", delimiter=",", skip_header=2)
+    period = data[:,3]
+    period_derivative = np.abs(data[:,6])
+
+    characteristic_age = give_characteristic_PSR_age(period, period_derivative)
+    _, bins = np.histogram(characteristic_age,
+                           bins=20)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    plt.hist(characteristic_age, bins=logbins, histtype="step",
+             label=r"Outside SNR")
+    
+
+    data = np.genfromtxt("Pulsars_in_SNRs.txt", delimiter=",", skip_header=2)
+    period = data[:,1]
+    period_derivative = data[:,2]*1e-15
+
+    characteristic_age = give_characteristic_PSR_age(period, period_derivative)
+    _, bins = np.histogram(characteristic_age,
+                           bins=20)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    plt.hist(characteristic_age, bins=logbins, histtype="step",
+             label=r"Inside SNR")
+
+
+    plt.xlabel(r"$t$ [kyr]")
+    plt.ylabel(r"Density of pulsars")
+    plt.xscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/PSR_in_out_SNR.pdf")
+    plt.show()
+
 
 
 t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
@@ -349,6 +422,6 @@ if __name__ == "__main__":
     # give_inside_proportion_with_time_same_age()
     # give_inside_proportion_with_time_varying_parameters()
 
-    plot_catalog_PSR()
+    plot_age_SNR()
 
     1
