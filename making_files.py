@@ -229,63 +229,6 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age_comparison.pdf")
     plt.show()
 
-def give_inside_proportion_with_time_varying_n_ISM() -> None:
-
-    colors = ["blue", "orange"]
-    variable = [True, False]
-    linestyles = ["-", "--"]
-
-    fig = plt.figure()
-
-    number_of_pulsars = 100
-
-    for i in range(len(variable)):
-        mu_arr = np.array([])
-        xL_arr, xU_arr = np.array([]), np.array([])
-
-        for t_ in tqdm(t_arr):
-            proportion_arr = np.array([])
-            for _ in range(100):
-                result = 0
-                while result == 0:
-                    result = zeroordergalaxy.give_is_inside_proportion_n_ISM(
-                        t_, n=number_of_pulsars, phase="PDS",
-                        variable_parameters=variable[i])
-                proportion_arr = np.append(proportion_arr, result)
-                
-            # Finding the most frequent percentage and 2 sigma interval
-            x = np.histogram(proportion_arr,
-                             bins = int(np.max([5, number_of_pulsars/5])))
-            
-            hist, edges = x[0], x[1]
-            
-            xL, xU, A = shortest_interval(edges, hist,
-                                          0.9545*number_of_pulsars)
-            xL_arr = np.append(xL_arr, xL)
-            xU_arr = np.append(xU_arr, xU)
-
-            edges = (edges + (edges[1] - edges[0])/2)[:-1]
-            mu_arr = np.append(mu_arr, np.average(edges, weights=hist))
-
-        plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
-                 label=f"Parameters changing {variable[i]}")
-        plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
-                         alpha=0.2, color=colors[i],
-                         label=r"2$\sigma$ "f"{variable[i]}")
-
-    plt.axvline(x=342, linestyle="--", color="red",
-                label=r"Geminga: 342 kyr")
-    plt.axvline(x=110, linestyle="-.", color="red",
-                label=r"Monogem: 110 kyr")
-
-    plt.xscale("log")
-    plt.xlabel("Pulsar age [kyr]")
-    plt.ylabel("Pulsars inside their SNR [%]")
-    plt.grid()
-    plt.legend(fontsize=12)
-    fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying parameters.pdf")
-    plt.show()
 
 def give_inside_proportion_with_time_varying_parameters() -> None:
 
@@ -356,8 +299,8 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.show()
 
 
-def give_true_PSR_age(P, dPdt, P0, n=3):
-    return P / ((n-1)*dPdt) * (1 - (P0/P)**(n-1)) / (np.pi*1e7) #yr
+def give_characteristic_PSR_age(P, dPdt):
+    return P / (2*dPdt) / (1e3*np.pi*1e7) # kyr
 
 
 def plot_catalog_PSR():
@@ -366,28 +309,31 @@ def plot_catalog_PSR():
     period_derivative = data[:,2]*1e-15
     period_initial = data[:,3]*1e-3
 
-    true_age = give_true_PSR_age(period, period_derivative, period_initial)
-    # Uniform histogram in log x-scale
-    _, bins = np.histogram(true_age, bins=20)
+    characteristic_age = give_characteristic_PSR_age(period, period_derivative)
+    _, bins = np.histogram(characteristic_age, bins=20)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
 
     plt.scatter(period, period_derivative)
     plt.xlabel(r"$P$ [s]")
-    plt.ylabel(r"$\mathrm{d}P/\mathrm{t}$ [s/s]")
+    plt.ylabel(r"$\mathrm{d}P/\mathrm{d}t$ [s/s]")
     plt.xscale("log")
     plt.yscale("log")
     plt.grid()
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/P_Pdot.pdf")
+    plt.show()
 
     fig = plt.figure()
 
-    plt.hist(true_age, bins=logbins)
-    plt.xlabel(r"$t$ [yr]")
+    plt.hist(characteristic_age, bins=logbins, histtype="step",
+             label=r"Characteristic age")
+    plt.xlabel(r"$t$ [kyr]")
+    plt.ylabel(r"Number of pulsars")
     plt.xscale("log")
     plt.grid()
+    plt.legend()
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/PSR_age.pdf")
     plt.show()
@@ -404,7 +350,5 @@ if __name__ == "__main__":
     # give_inside_proportion_with_time_varying_parameters()
 
     plot_catalog_PSR()
-
-
 
     1
