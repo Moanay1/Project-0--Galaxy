@@ -415,10 +415,8 @@ def plot_SN_radius_varying_E(n: float = 0.069, chi: float = 1) -> None:
     fig = plt.figure()
 
     for E_ in E_arr:
-        t_max = give_SN_merge_time(give_ISM_sound_speed(), E_, n, chi)
         t_arr = np.logspace(1, 7, 500)  # yr
         r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
-        t_PDS = give_SN_PDS_time(E_, n, chi)
 
 
         plt.plot(t_arr, r_arr, linestyle="-",
@@ -482,10 +480,8 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     E_arr = np.array([0.1, 0.5, 1, 2, 5])*1e51
 
     for E_ in E_arr:
-        t_max = give_SN_merge_time(give_ISM_sound_speed(), E_, n, chi)
         t_arr = np.logspace(1, 7, 500)  # yr
         r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
-        t_PDS = give_SN_PDS_time(E_, n, chi)
 
         ax[1].plot(t_arr, r_arr, linestyle="-",
                 label=r"$E_\mathrm{SN} =$"f"${E_}$"r" erg")
@@ -586,13 +582,6 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     radius_func = np.vectorize(give_SN_radius)
     r = radius_func(t, E = EE, n = nn)
 
-    n_pdf = make_lognormal(n_arr, 0.069, 5.1)/\
-            np.max(make_lognormal(n_arr, 0.069, 5.1))
-    E_pdf = make_lognormal(E_arr, 2.7e50, 3.5)/\
-            np.max(make_lognormal(E_arr, 2.7e50, 3.5))
-
-    nn_pdf, EE_pdf = np.meshgrid(n_pdf, E_pdf)
-
     make_func = np.vectorize(make_multivariate_lognormal)
     pdf = make_func(nn, EE, 0.069, 2.7e50, 5.1, 3.5)/\
           np.max(make_func(nn, EE, 0.069, 2.7e50, 5.1, 3.5))
@@ -604,7 +593,8 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
 
     CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent,
                      linestyles="-")
-    plt.clabel(CS, inline=False)
+    plt.clabel(CS, fmt=r"$70~\mathrm{pc}$", inline=False,
+               manual=[(1, -3e50)])
 
     CS2 = plt.contour(nn, EE, pdf, 4, extent=extent, colors="black",
                       linestyles="--", linewidths=0.5)
@@ -615,6 +605,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     
     plt.scatter(0.069, 2.7e50, c="blue")
     plt.scatter(0.034, 8e50, c="red")
+    plt.text(0.0225, 8.5e50, s="Monogem", fontsize=10)
 
     
     clb = plt.colorbar(im)
@@ -629,7 +620,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     plt.xscale("log")
     plt.yscale("log")
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).pdf")
+    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).png")
     plt.show()
 
 
@@ -791,9 +782,9 @@ if __name__ == "__main__":
     # plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius()
-    plot_SN_radius_comparison()
+    # plot_SN_radius_comparison()
     # plot_SN_radius_extreme_cases()
-    # plot_SN_radius_varying_parameters(AGE_GEMINGA)
+    plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)

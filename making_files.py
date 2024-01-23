@@ -356,6 +356,43 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.show()
 
 
+def give_true_PSR_age(P, dPdt, P0, n=3):
+    return P / ((n-1)*dPdt) * (1 - (P0/P)**(n-1)) / (np.pi*1e7) #yr
+
+
+def plot_catalog_PSR():
+    data = np.genfromtxt("Pulsars_in_SNRs.txt", delimiter=",", skip_header=2)
+    period = data[:,1]
+    period_derivative = data[:,2]*1e-15
+    period_initial = data[:,3]*1e-3
+
+    true_age = give_true_PSR_age(period, period_derivative, period_initial)
+    # Uniform histogram in log x-scale
+    _, bins = np.histogram(true_age, bins=20)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+
+    plt.scatter(period, period_derivative)
+    plt.xlabel(r"$P$ [s]")
+    plt.ylabel(r"$\mathrm{d}P/\mathrm{t}$ [s/s]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/P_Pdot.pdf")
+
+    fig = plt.figure()
+
+    plt.hist(true_age, bins=logbins)
+    plt.xlabel(r"$t$ [yr]")
+    plt.xscale("log")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/PSR_age.pdf")
+    plt.show()
+
+
 t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
 
 if __name__ == "__main__":
@@ -364,6 +401,10 @@ if __name__ == "__main__":
     # give_inside_proportion()
 
     # give_inside_proportion_with_time_same_age()
-    give_inside_proportion_with_time_varying_parameters()
+    # give_inside_proportion_with_time_varying_parameters()
+
+    plot_catalog_PSR()
+
+
 
     1
