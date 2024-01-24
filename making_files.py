@@ -385,8 +385,11 @@ def plot_age_SNR():
     _, bins = np.histogram(characteristic_age,
                            bins=20)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
-    plt.hist(characteristic_age, bins=logbins, histtype="step",
+    plt.hist(characteristic_age, bins=logbins,
+             weights=np.ones_like(characteristic_age)/len(characteristic_age),
+             histtype="step",
              label=r"Outside SNR")
+    
     
 
     data = np.genfromtxt("Pulsars_in_SNRs.txt", delimiter=",", skip_header=2)
@@ -397,7 +400,9 @@ def plot_age_SNR():
     _, bins = np.histogram(characteristic_age,
                            bins=20)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
-    plt.hist(characteristic_age, bins=logbins, histtype="step",
+    plt.hist(characteristic_age, bins=logbins,
+             weights=np.ones_like(characteristic_age)/len(characteristic_age),
+             histtype="step",
              label=r"Inside SNR")
 
 
