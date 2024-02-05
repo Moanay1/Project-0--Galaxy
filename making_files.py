@@ -407,7 +407,7 @@ def plot_age_SNR():
 
 
     plt.xlabel(r"$t$ [kyr]")
-    plt.ylabel(r"Density of pulsars")
+    plt.ylabel(r"Number of pulsars")
     plt.xscale("log")
     plt.grid()
     plt.legend()

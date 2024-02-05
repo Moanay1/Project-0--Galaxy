@@ -606,7 +606,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     plt.scatter(0.069, 2.7e50, c="blue")
     plt.scatter(0.034, 8e50, c="red")
     plt.text(0.0225, 8.5e50, s="Monogem", fontsize=10)
-
+    
     
     clb = plt.colorbar(im)
     clb.set_label(r"$R_\mathrm{s}(E_\mathrm{SN}, n_\mathrm{ISM})$ [pc]")
@@ -620,7 +620,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     plt.xscale("log")
     plt.yscale("log")
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).png")
+    plt.savefig("Project Summary/Images/R_SN(E_SN, n_ISM).pdf")
     plt.show()
 
 
