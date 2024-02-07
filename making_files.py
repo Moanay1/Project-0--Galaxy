@@ -416,6 +416,24 @@ def plot_age_SNR():
     plt.show()
 
 
+def plot_morphology_PSR():
+
+    fig = plt.figure()
+
+    data = np.genfromtxt("Pulsars_in_SNRs.txt", delimiter=",", skip_header=2,
+                         dtype=str)
+    type = data[:,4]
+
+    plt.hist(type, histtype="step")
+
+    plt.xlabel(r"Type")
+    plt.ylabel(r"Number of pulsars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/PSR_in_SNR_type.pdf")
+    plt.show()
+
+
 
 t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
 
@@ -427,6 +445,7 @@ if __name__ == "__main__":
     # give_inside_proportion_with_time_same_age()
     # give_inside_proportion_with_time_varying_parameters()
 
-    plot_age_SNR()
+    # plot_age_SNR()
+    plot_morphology_PSR()
 
     1

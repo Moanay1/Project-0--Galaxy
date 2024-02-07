@@ -591,7 +591,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
 
     extent = [np.min(n_arr), np.max(n_arr), np.min(E_arr), np.max(E_arr)]
 
-    CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent,
+    CS = plt.contour(nn, EE, r, [65, 70, 75], colors="black", extent=extent,
                      linestyles="-")
     plt.clabel(CS, fmt=r"$70~\mathrm{pc}$", inline=False,
                manual=[(1, -3e50)])
