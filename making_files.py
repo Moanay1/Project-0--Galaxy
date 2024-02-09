@@ -4,8 +4,8 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
-import scipy.integrate as inte
 import os
+import time
 
 
 def make_gaussian(x: float, mu: float, sigma: float, A: float) -> float:
@@ -175,45 +175,53 @@ def give_inside_proportion() -> None:
 
 def give_inside_proportion_with_time_same_age() -> None:
 
-    colors = ["blue", "orange"]
-    phases = ["ST", "PDS"]
+    colors = ["orange"]
 
     fig = plt.figure()
 
     number_of_pulsars = 100
+    realizations = 100
 
-    for i in range(len(phases)):
-        mu_arr = np.array([])
-        xL_arr, xU_arr = np.array([]), np.array([])
+    mu_arr = np.array([])
+    xL_arr, xU_arr = np.array([]), np.array([])
 
-        for t_ in tqdm(t_arr):
-            proportion_arr = np.array([])
-            for _ in range(100):
-                result = 0
-                while result == 0:
-                    result = zeroordergalaxy.give_is_inside_proportion(
-                        t_, n=number_of_pulsars, phase=phases[i])
-                proportion_arr = np.append(proportion_arr, result)
-                
-            # Finding the most frequent percentage and 2 sigma interval
-            x = np.histogram(proportion_arr,
-                             bins = int(np.max([5, number_of_pulsars/5])))
+    file = open("Galaxies/Pulsars_n{number}_r{realizations}.csv".format(
+        number=number_of_pulsars, realizations=realizations
+    ), "w")
+    file.write("t [yr], Percentage [%], Percentage err -, Percentage err +\n")
+
+    for t_ in tqdm(t_arr):
+        proportion_arr = np.array([])
+        for _ in tqdm(range(realizations)):
+            result = 0
+            while result == 0:
+                result = zeroordergalaxy.give_is_inside_proportion(
+                    t_, n=number_of_pulsars, phase="PDS")
+            proportion_arr = np.append(proportion_arr, result)
+
             
-            hist, edges = x[0], x[1]
-            
-            xL, xU, A = shortest_interval(edges, hist,
-                                          0.9545*number_of_pulsars)
-            xL_arr = np.append(xL_arr, xL)
-            xU_arr = np.append(xU_arr, xU)
+        # Finding the most frequent percentage and 2 sigma interval
+        x = np.histogram(proportion_arr,
+                            bins = int(np.max([5, number_of_pulsars/5])))
+        
+        hist, edges = x[0], x[1]
+        
+        xL, xU, A = shortest_interval(edges, hist,
+                                        0.9545*number_of_pulsars)
+        xL_arr = np.append(xL_arr, xL)
+        xU_arr = np.append(xU_arr, xU)
 
-            edges = (edges + (edges[1] - edges[0])/2)[:-1]
-            mu_arr = np.append(mu_arr, np.average(edges, weights=hist))
+        edges = (edges + (edges[1] - edges[0])/2)[:-1]
+        mu = np.average(edges, weights=hist)
+        mu_arr = np.append(mu_arr, mu)
 
-        plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
-                 label=f"{phases[i]}")
-        plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
-                         alpha=0.2, color=colors[i],
-                         label=r"2$\sigma$ "f"{phases[i]}")
+        file.write("{t:.2f}, {percentage:.2f}, {errmin:.2f}, {errmax:.2f}\n".
+                   format(t=t_, percentage=mu, errmin=xL, errmax=xU))
+
+    plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[0])
+    plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
+                        alpha=0.2, color=colors[0],
+                        label=r"2$\sigma$")
 
     plt.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
@@ -226,7 +234,7 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age_comparison.pdf")
+    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age.pdf")
     plt.show()
 
 
@@ -234,24 +242,33 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
     colors = ["blue", "orange"]
     variable = [True, False]
-    linestyles = ["-", "--"]
 
     fig = plt.figure()
 
     number_of_pulsars = 100
+    realizations = 100
 
     for i in range(len(variable)):
+
+        time_pulsars = np.array([])
         mu_arr = np.array([])
         xL_arr, xU_arr = np.array([]), np.array([])
 
+        file = open("Galaxies/Pulsars_n{number}_r{realizations}_varying_parameters_{parameters}.csv".
+        format(number=number_of_pulsars, realizations=realizations, parameters=variable[i]), "w")
+        file.write("t [yr], Percentage [%], Percentage err -, Percentage err +\n")
+
         for t_ in tqdm(t_arr):
             proportion_arr = np.array([])
-            for _ in range(100):
+            for _ in tqdm(range(realizations)):
                 result = 0
                 while result == 0:
+                    start = time.process_time()
                     result = zeroordergalaxy.give_is_inside_proportion(
-                        t_, n=number_of_pulsars, phase="PDS",
+                        t_, n=number_of_pulsars,
                         variable_parameters=variable[i])
+                    time_pulsars = np.append(time_pulsars,
+                            (time.process_time() - start)/number_of_pulsars)
                 proportion_arr = np.append(proportion_arr, result)
                 
             # Finding the most frequent percentage and 2 sigma interval
@@ -266,7 +283,13 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
             xU_arr = np.append(xU_arr, xU)
 
             edges = (edges + (edges[1] - edges[0])/2)[:-1]
-            mu_arr = np.append(mu_arr, np.average(edges, weights=hist))
+            mu = np.average(edges, weights=hist)
+            mu_arr = np.append(mu_arr, mu)
+
+            file.write("{t:.2f}, {percentage:.2f}, {errmin:.2f}, {errmax:.2f}\n".
+                   format(t=t_, percentage=mu, errmin=xL, errmax=xU))
+
+        print(np.mean(time_pulsars))
 
 
 
@@ -295,7 +318,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying parameters.pdf")
+    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying_parameters.pdf")
     plt.show()
 
 
@@ -442,10 +465,10 @@ if __name__ == "__main__":
     # make_galaxies()
     # give_inside_proportion()
 
-    # give_inside_proportion_with_time_same_age()
-    # give_inside_proportion_with_time_varying_parameters()
+    give_inside_proportion_with_time_same_age()
+    give_inside_proportion_with_time_varying_parameters()
 
     # plot_age_SNR()
-    plot_morphology_PSR()
+    # plot_morphology_PSR()
 
     1

@@ -591,14 +591,19 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
 
     extent = [np.min(n_arr), np.max(n_arr), np.min(E_arr), np.max(E_arr)]
 
-    CS = plt.contour(nn, EE, r, [65, 70, 75], colors="black", extent=extent,
+    CS = plt.contour(nn, EE, r, [70], colors="black", extent=extent,
                      linestyles="-")
     plt.clabel(CS, fmt=r"$70~\mathrm{pc}$", inline=False,
                manual=[(1, -3e50)])
 
-    CS2 = plt.contour(nn, EE, pdf, 4, extent=extent, colors="black",
+    CS2 = plt.contour(nn, EE, pdf, [0.00269, 0.04550, 0.31731],
+                      extent=extent, colors="black",
                       linestyles="--", linewidths=0.5)
-    plt.clabel(CS2, fontsize=10, inline=False)
+    fmt = {}
+    strs = ["3$\sigma$", "$2\sigma$", "$\sigma$"]
+    for l, s in zip(CS2.levels, strs):
+        fmt[l] = s
+    plt.clabel(CS2, fontsize=10, fmt=fmt, inline=False)
 
     im = plt.contourf(nn, EE, r, int(np.max(r)-np.min(r)),
                  extent=extent, cmap="gist_rainbow")

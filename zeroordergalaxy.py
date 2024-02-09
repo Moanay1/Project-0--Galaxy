@@ -41,8 +41,9 @@ def give_E_SN(n_: int = 1) -> np.ndarray:
     mu = 2.7e50 # erg
     sigma = 3.5
 
-    result = [give_random_value(lambda x:SN.make_lognormal(x, mu, sigma),
-                               1e49, 1e52) for _ in range(n_)]
+    result = np.array([give_random_value(lambda x:
+                                         SN.make_lognormal(x, mu, sigma),
+                               1e49, 1e52) for _ in range(n_)])
 
     return result
 
@@ -60,8 +61,9 @@ def give_n_ISM(n_: int = 1) -> np.ndarray:
     mu = 0.069 # cm-3
     sigma = 5.1
 
-    result = [give_random_value(lambda x:SN.make_lognormal(x, mu, sigma),
-                               1e-4, 1e1) for _ in range(n_)]
+    result = np.array([give_random_value(lambda x:
+                                         SN.make_lognormal(x, mu, sigma),
+                               1e-4, 1e1) for _ in range(n_)])
 
     return result
 
@@ -432,7 +434,7 @@ def create_file_zero(
 def give_is_inside_proportion(
         t: float = 100e3,
         n: int = 100,
-        phase: str = "ST",
+        phase: str = "PDS",
         variable_parameters: bool = False,
         E = 2.7e50,
         n_ = 0.069
@@ -474,7 +476,7 @@ if __name__ == "__main__":
     # test_density_profile()
     # test_initial_period()
     # test_kick_velocity()
-    test_pick_arm()
+    # test_pick_arm()
 
     # test_E_SN()
     # test_n_ISM()

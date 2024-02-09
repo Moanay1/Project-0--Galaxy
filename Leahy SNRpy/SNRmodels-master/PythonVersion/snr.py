@@ -11,6 +11,7 @@ import snr_calc as calc
 import snr_plot as plt
 import snr_fileCalc as fileCalc
 import math
+from tqdm import tqdm
 
 # To create executable:
 # pyinstaller --noconfirm --log-level=ERROR filename.spec
@@ -32,7 +33,7 @@ ABUNDANCE = {"Solar": {"H": 12, "He": 10.93, "O": 8.69, "C": 8.43, "Ne": 7.93, "
             "CC": {"H": 12, "He": 11.216, "O": 9.548, "C": 9.163, "Ne": 8.773, "N": 8.527, "Mg": 8.324, "Si": 8.746,
                        "Fe": 8.554, "S": 8.331, "Ca": 7.483, "Ni": 7.363, "Na": 7.383, "Al": 7.593, "Ar": 7.543}
              } 
-switchPlotToDefault = False     
+switchPlotToDefault = False
 ##############################################################################################################################
 def get_model_name(key, snr_em):
     """Get name of model to be shown on emissivity window.
@@ -237,7 +238,8 @@ def model_change(update=True):
         update (bool): true if SuperNovaRemnant instance needs to be updated (generally only False when run during
                        initialization to avoid running update_output multiple times unnecessarily)
     """
-    global switchPlotToDefault
+    global switchPlotToDefault, widgets
+
     if widgets["model"].get_value() != "fel":
         widgets["t_fel"].input.grid_remove()
         widgets["t_fel"].label.grid_remove()
@@ -332,6 +334,7 @@ def scale_change(widget):
 
 ##############################################################################################################################
 def update_ratio():
+    global widgets
     dropdown = widgets["T_ratio"]
     if dropdown.get_value() == "Default":
         dropdown.input.config(state="readonly")
@@ -343,6 +346,7 @@ def update_ratio():
 
 ##############################################################################################################################
 def abundance_window(abundance_dict, ab_type):
+    global APP
     """Create window to view and adjust element abundances.
 
     Args:
@@ -404,6 +408,7 @@ def reset_ab(root_id):
 
 ##############################################################################################################################
 def ab_window_close(root, ab_dict, ab_type, event=None):
+    global ab_window_open
     """Close abundance window and update abundance related variables.
 
     Args:
@@ -435,6 +440,7 @@ def inverse_window():
     global forward_mode
     global SNR_INV
     global inverseWindow
+    global widgets
     
     if (inverseWindowActive == True):
         inverseWindow.root.focus()
@@ -676,6 +682,7 @@ def s_change_inv(widgets, SNR_INV, update=True):
 
 ##############################################################################################################################
 def emissivity_window():
+    global SNR, ws, hs
     """Create window to display emissivity data for an SNR with input parameters from the main window."""
 
     window = gui.ScrollWindow()
@@ -765,14 +772,16 @@ def gt_zero(value):
     return value > 0
 
 ##############################################################################################################################
-if __name__ == '__main__':
-    
+def Leahy_SNR_calculations_window_hidden(t, e_sn, n_ism):
+    global widgets, SNR, APP
+
     ab_window_open = {"ISM": False, "Ejecta": False}
     inverseWindowActive = False
     # Set initial ISM abundance type
     ism_ab_type = "Solar"
     ej_ab_type = "CC"
     APP = gui.ScrollWindow("root")
+    APP.root.withdraw()     # Hides the window
     root_id = "." + APP.container.winfo_parent().split(".")[1]
     gui.InputParam.instances[root_id] = {}
     widgets = gui.InputParam.instances[root_id]
@@ -797,7 +806,7 @@ if __name__ == '__main__':
     # Note time isn't restricted to less than t_mrg - this is accounted for in snr_calc.py
     # If time was restricted, users could become confused due to rounding of displayed t_mrg
     gui.InputEntry(APP.input, "t", "Age (yr):", 100, SNR.update_output, gt_zero)
-    gui.InputEntry(APP.input, "e_51", "Energy (x 10\u2075\u00B9 erg):", 1.0, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "e_51", "Energy (x 10\u2075\u00B9 erg):", e_sn/1e51, SNR.update_output, gt_zero)
     gui.InputEntry(APP.input, "temp_ism", "ISM Temperature (K):", 100, SNR.update_output, gt_zero)
     gui.InputEntry(APP.input, "m_ej", "Ejected mass (M\u2609):", 1.4, SNR.update_output, gt_zero)
     gui.InputDropdown(APP.input, "n", "Ejecta power-law index, n:", 0, n_change,
@@ -809,7 +818,7 @@ if __name__ == '__main__':
         ratio_label = "Electron to ion temperature ratio T\u2091\u200a/\u200aT\u1d62\u200a:"
     gui.InputDropdown(APP.input, "T_ratio", ratio_label, "Default", update_ratio, "Custom")
     gui.InputEntry(APP.input, "zeta_m", "Cooling adjustment factor:", 1.0, SNR.update_output, gt_zero)
-    gui.InputEntry(APP.input, "n_0", "ISM number density (cm\u207B\u00B3):", 2.0, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "n_0", "ISM number density (cm\u207B\u00B3):", n_ism, SNR.update_output, gt_zero)
     gui.InputEntry(APP.input, "sigma_v", "ISM turbulence/random speed (km/s):", 7.0, SNR.update_output)
     gui.InputEntry(APP.input, "m_w", "Stellar wind mass loss (M\u2609/yr):", 1e-7, SNR.update_output, gt_zero)
     gui.InputEntry(APP.input, "v_w", "Wind speed (km/s):", 30, SNR.update_output, gt_zero)
@@ -901,9 +910,23 @@ if __name__ == '__main__':
     s_change(False)
     n_change(False)
     APP.root.update()
+
+    radius = SNR.print_data()
+
     widgets["t_fel"].value_var.set(round(SNR.calc["t_pds"]))
     APP.canvas.config(scrollregion=(0, 0, APP.container.winfo_reqwidth(), APP.container.winfo_reqheight()))
-    APP.root.mainloop()
 
+
+
+    APP.root.destroy() # Destroys the withdrawn window
+
+    return radius
+
+
+##############################################################################################################################
+if __name__ == '__main__':
+    
+    for _ in tqdm(range(10)):
+        Leahy_SNR_calculations_window_hidden(1e51, 1)
 
 ##############################################################################################################################

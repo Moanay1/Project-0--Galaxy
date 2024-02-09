@@ -449,6 +449,15 @@ class SuperNovaRemnant:
             return False
         
 ##########################################################################################################################
+    def print_data(self, t=1000):
+
+        plot_data = self.get_plot_data(self.get_phases())
+
+        radius_at_t=plot_data["forward"]["t"][plot_data["forward"]["t"] > t][0]
+
+        return radius_at_t
+            
+##########################################################################################################################
     def update_plot(self, phases):
         """Add necessary lines to output plot and redraw with the correct limits.
 
@@ -460,7 +469,7 @@ class SuperNovaRemnant:
         f.write("t [yr], r [pc]\n")
 
         plot_data = self.get_plot_data(phases)
-        print(plot_data["forward"])
+        # print(plot_data["forward"])
 
         for i in range(len(plot_data["forward"]["t"])):
             f.write("{t:.2f}, {r:.2f}\n".format(t=plot_data["forward"]["t"][i],
