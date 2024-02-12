@@ -322,6 +322,57 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.show()
 
 
+def check_number_of_realisations():
+
+    t_arr = np.array([1, 2, 5])*1e5 #yr
+    realisations_arr = np.logspace(0.5, 3, 20)
+    number_of_pulsars = 1000
+
+    fig = plt.figure()
+
+    for t_ in t_arr:
+        mu_arr = np.array([])
+        xL_arr, xU_arr = np.array([]), np.array([])
+
+        for realisations in tqdm(realisations_arr):
+            proportion_arr = np.array([])
+            for _ in range(int(realisations)):
+                result = 0
+                while result == 0:
+                    result = zeroordergalaxy.give_is_inside_proportion(
+                        t_, n=number_of_pulsars,
+                        variable_parameters=True)
+                proportion_arr = np.append(proportion_arr, result)
+
+            x = np.histogram(proportion_arr,
+                                bins = int(np.max([5, number_of_pulsars/5])))
+                
+            hist, edges = x[0], x[1]
+
+            edges = (edges + (edges[1] - edges[0])/2)[:-1]
+            mu = np.average(edges, weights=hist)
+            mu_arr = np.append(mu_arr, mu)
+
+            xL, xU, A = shortest_interval(edges, hist,
+                                          0.9545*number_of_pulsars)
+            xL_arr = np.append(xL_arr, xL)
+            xU_arr = np.append(xU_arr, xU)
+
+        plt.plot(realisations_arr, mu_arr, label=f"t={t_/1e3} kyr")
+        plt.fill_between(realisations_arr, xL_arr, xU_arr,
+                         alpha=0.2, color=plt.gca().lines[-1].get_color())
+    
+    plt.xscale("log")
+    plt.xlabel("Number of realisations")
+    plt.ylabel("Mean percentage value")
+    plt.ylim(0,100)
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/Check_number_realisations.pdf")
+    plt.show()
+
+
 def give_characteristic_PSR_age(P, dPdt):
     return P / (2*dPdt) / (1e3*np.pi*1e7) # kyr
 
@@ -465,8 +516,10 @@ if __name__ == "__main__":
     # make_galaxies()
     # give_inside_proportion()
 
-    give_inside_proportion_with_time_same_age()
-    give_inside_proportion_with_time_varying_parameters()
+    # give_inside_proportion_with_time_same_age()
+    # give_inside_proportion_with_time_varying_parameters()
+
+    check_number_of_realisations()
 
     # plot_age_SNR()
     # plot_morphology_PSR()
