@@ -179,7 +179,7 @@ def give_inside_proportion_with_time_same_age() -> None:
 
     fig = plt.figure()
 
-    number_of_pulsars = 100
+    number_of_pulsars = 1000
     realizations = 100
 
     mu_arr = np.array([])
@@ -199,21 +199,13 @@ def give_inside_proportion_with_time_same_age() -> None:
                     t_, n=number_of_pulsars, phase="PDS")
             proportion_arr = np.append(proportion_arr, result)
 
-            
-        # Finding the most frequent percentage and 2 sigma interval
-        x = np.histogram(proportion_arr,
-                            bins = int(np.max([5, number_of_pulsars/5])))
-        
-        hist, edges = x[0], x[1]
-        
-        xL, xU, A = shortest_interval(edges, hist,
-                                        0.9545*number_of_pulsars)
-        xL_arr = np.append(xL_arr, xL)
-        xU_arr = np.append(xU_arr, xU)
+            mu = np.median(proportion_arr, axis=0)
+            xL = np.percentile(proportion_arr, 5, axis=0)
+            xU = np.percentile(proportion_arr, 95, axis=0)
 
-        edges = (edges + (edges[1] - edges[0])/2)[:-1]
-        mu = np.average(edges, weights=hist)
-        mu_arr = np.append(mu_arr, mu)
+            mu_arr = np.append(mu_arr, mu)
+            xL_arr = np.append(xL_arr, xL)
+            xU_arr = np.append(xU_arr, xU)
 
         file.write("{t:.2f}, {percentage:.2f}, {errmin:.2f}, {errmax:.2f}\n".
                    format(t=t_, percentage=mu, errmin=xL, errmax=xU))
@@ -234,7 +226,7 @@ def give_inside_proportion_with_time_same_age() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age.pdf")
+    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_same_age.pdf")
     plt.show()
 
 
@@ -245,7 +237,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
     fig = plt.figure()
 
-    number_of_pulsars = 100
+    number_of_pulsars = 1000
     realizations = 100
 
     for i in range(len(variable)):
@@ -260,7 +252,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
         for t_ in tqdm(t_arr):
             proportion_arr = np.array([])
-            for _ in tqdm(range(realizations)):
+            for _ in range(realizations):
                 result = 0
                 while result == 0:
                     start = time.process_time()
@@ -271,35 +263,18 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
                             (time.process_time() - start)/number_of_pulsars)
                 proportion_arr = np.append(proportion_arr, result)
                 
-            # Finding the most frequent percentage and 2 sigma interval
-            x = np.histogram(proportion_arr,
-                             bins = int(np.max([5, number_of_pulsars/5])))
-            
-            hist, edges = x[0], x[1]
-            
-            xL, xU, A = shortest_interval(edges, hist,
-                                          0.9545*number_of_pulsars)
+            mu = np.median(proportion_arr, axis=0)
+            xL = np.percentile(proportion_arr, 5, axis=0)
+            xU = np.percentile(proportion_arr, 95, axis=0)
+
+            mu_arr = np.append(mu_arr, mu)
             xL_arr = np.append(xL_arr, xL)
             xU_arr = np.append(xU_arr, xU)
-
-            edges = (edges + (edges[1] - edges[0])/2)[:-1]
-            mu = np.average(edges, weights=hist)
-            mu_arr = np.append(mu_arr, mu)
 
             file.write("{t:.2f}, {percentage:.2f}, {errmin:.2f}, {errmax:.2f}\n".
                    format(t=t_, percentage=mu, errmin=xL, errmax=xU))
 
         print(np.mean(time_pulsars))
-
-
-
-    #         plt.hist(proportion_arr, histtype="step", linestyle=linestyles[i],
-    #                  color=plt.cm.rainbow(t_/np.max(t_arr)),
-    #                  label="$t = {}$ kyr".format(t_/1e3))
-    # plt.xlabel("Pulsars inside their SNR [%]")
-    # fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_histograms.pdf")  
-    # plt.show()
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
                  label=f"Parameters changing {variable[i]}")
@@ -318,7 +293,7 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
     plt.grid()
     plt.legend(fontsize=12)
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying_parameters.pdf")
+    plt.savefig(r"Project Summary/Images/is_inside_evolution_with_time_varying_parameters.pdf")
     plt.show()
 
 
@@ -344,17 +319,11 @@ def check_number_of_realisations():
                         variable_parameters=True)
                 proportion_arr = np.append(proportion_arr, result)
 
-            x = np.histogram(proportion_arr,
-                                bins = int(np.max([5, number_of_pulsars/5])))
-                
-            hist, edges = x[0], x[1]
+            mu = np.median(proportion_arr, axis=0)
+            xL = np.percentile(proportion_arr, 5, axis=0)
+            xU = np.percentile(proportion_arr, 95, axis=0)
 
-            edges = (edges + (edges[1] - edges[0])/2)[:-1]
-            mu = np.average(edges, weights=hist)
             mu_arr = np.append(mu_arr, mu)
-
-            xL, xU, A = shortest_interval(edges, hist,
-                                          0.9545*number_of_pulsars)
             xL_arr = np.append(xL_arr, xL)
             xU_arr = np.append(xU_arr, xU)
 
@@ -369,7 +338,7 @@ def check_number_of_realisations():
     plt.grid()
     plt.legend()
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/Check_number_realisations.pdf")
+    plt.savefig(r"Project Summary/Images/Check_number_realisations_2.pdf")
     plt.show()
 
 
@@ -517,9 +486,9 @@ if __name__ == "__main__":
     # give_inside_proportion()
 
     # give_inside_proportion_with_time_same_age()
-    # give_inside_proportion_with_time_varying_parameters()
+    give_inside_proportion_with_time_varying_parameters()
 
-    check_number_of_realisations()
+    # check_number_of_realisations()
 
     # plot_age_SNR()
     # plot_morphology_PSR()

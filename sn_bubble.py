@@ -223,7 +223,7 @@ def give_mass_loss_WC(M: np.ndarray) -> np.ndarray:
 def give_bubble_density(
     M: np.ndarray,
     n_ISM: float = 0.069,
-    t: float = 1e6
+    t: float = 1e8
 ) -> np.ndarray:
     """Bubble density in cm-3"""
     L_arr = np.array([])
@@ -307,7 +307,8 @@ def give_SN_PDS_radius(
     t: np.ndarray,
     E: float = 2.7e50,
     n: float = 0.069,
-    chi: float = 1
+    chi: float = 1,
+    s:int =0
 ) -> np.ndarray:
     """Formula and parameters from Cioffi et al. 1988"""
     t_PDS = give_SN_PDS_time(E, n, chi)  # yr
@@ -317,7 +318,7 @@ def give_SN_PDS_radius(
     
     # Artificially stick the two parts together
     time_beginning_PDS = give_SN_PDS_time(E, n, chi)
-    radius_beginning_PDS = give_SN_ST_radius(time_beginning_PDS, E, n)
+    radius_beginning_PDS = give_SN_ST_radius(time_beginning_PDS, E, n, s)
 
 
     r = radius_beginning_PDS * (4/3*t/t_PDS - 1/3)**(3/10)  # pc
@@ -327,13 +328,20 @@ def give_SN_PDS_radius(
 def give_SN_ST_radius(
     t: float = 100e3,
     E: float = 2.7e50,
-    n: float = 0.069
+    n: float = 0.069,
+    s:int = 0
 ) -> float:
     """
     Naive interpretation of the Sedov-Taylor phase of the SNR,
     time in yr"""
     # ST phase
-    r = 2.026**(1/5) * (E)**(1/5) * (n*m_p)**(-1/5) * (t*yr)**(2/5)  # cm
+    if s==0:
+        r = 2.026**(1/5) * (E)**(1/5) * (n*m_p)**(-1/5) * (t*yr)**(2/5)  # cm
+    elif s==2:
+        rho_s = 1e10 # Work on the progenitor star
+        # DO A DENSITY CURVE
+        r = 0.5**(1/(5-s)) * (E)**(1/(5-s)) * (rho_s)**(-1/(5-s)) * \
+        (t*yr)**(2/(5-s))  # cm
     return r/pc  # pc
 
 
@@ -389,22 +397,63 @@ def give_SN_radius(
     E: float = 2.7e50,
     n: float = 0.069,
     chi: float = 1,
+    T: float = 100,
+    s:int = 0
 ) -> float:
     """Decides the phase of the SNR and gives the appropriate radius
     in pc. Requires a time in yr"""
     # Determining the SNR stage
     t_PDS = give_SN_PDS_time(E, n, chi)
     t_MCS = give_SN_MCS_time(E, n, chi)
-    t_max = give_SN_merge_time(give_ISM_sound_speed(100), E, n)
+    t_max = give_SN_merge_time(give_ISM_sound_speed(T), E, n)
     if t < t_PDS:
-        r = give_SN_ST_radius(t, E, n)
+        r = give_SN_ST_radius(t, E, n, s)
     elif t < t_MCS:
-        r = give_SN_PDS_radius(t, E, n, chi)
+        r = give_SN_PDS_radius(t, E, n, chi, s)
     elif t < t_max:
         r = give_SN_MCS_radius(t, E, n, chi)
     if t > t_max:
         r = 0
     return r
+
+
+def give_CSM_density(r:float, M:float = 8, n_ISM:float = 0.069):
+
+    M = np.array([M])
+
+    r_w = give_wind_radius(M) # pc
+    r_b = give_bubble_radius(M) # pc
+
+    if r < r_w:
+        n = 1e10/m_p * (r*pc)**(-2) # /cm3
+    elif r < r_b:
+        n = give_bubble_density(M)[0]
+    else:
+        n = n_ISM
+
+    return n
+
+
+def plot_CSM_density():
+
+    r_arr = np.logspace(-4, 4, 500) # pc
+
+    fig = plt.figure()
+
+    M_arr = np.linspace(8, 120, 5)
+
+    for M_ in M_arr:
+        n_arr = np.array([give_CSM_density(r_, M_) for r_ in r_arr]) # /cm3
+        plt.plot(r_arr, n_arr, label=f"$M={M_:.0f}$ M$_\odot$")
+
+    plt.xlabel(r"$r$ [pc]")
+    plt.ylabel(r"$n$ [cm$^{-3}$]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.show()
 
 
 def plot_SN_radius_varying_E(n: float = 0.069, chi: float = 1) -> None:
@@ -463,7 +512,11 @@ def plot_SN_radius_varying_n(E: float = 2.7e50, chi: float = 1) -> None:
     plt.show()
 
 
-def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
+def plot_SN_radius(E: float = 2.7e50,
+                   n:float =0.069,
+                   chi: float = 1,
+                   s:int = 0
+                   ) -> None:
     """From Cioffi et al. 1988"""
 
     n_arr = np.array([0.01, 0.05, 0.069, 0.1, 0.5])
@@ -472,7 +525,7 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
 
     for n_ in n_arr:
         t_arr = np.logspace(1, 7, 500)  # yr
-        r_arr = np.array([give_SN_radius(t_, E, n_, chi) for t_ in t_arr])
+        r_arr = np.array([give_SN_radius(t_, E, n_, chi, s=s) for t_ in t_arr])
     
         ax[0].plot(t_arr, r_arr, linestyle="-",
                 label=r"$n_\mathrm{ISM} =$"f"${n_}$"r" cm$^{-3}$")
@@ -481,7 +534,7 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
 
     for E_ in E_arr:
         t_arr = np.logspace(1, 7, 500)  # yr
-        r_arr = np.array([give_SN_radius(t_, E_, n, chi) for t_ in t_arr])
+        r_arr = np.array([give_SN_radius(t_, E_, n, chi, s=s) for t_ in t_arr])
 
         ax[1].plot(t_arr, r_arr, linestyle="-",
                 label=r"$E_\mathrm{SN} =$"f"${E_}$"r" erg")
@@ -501,7 +554,37 @@ def plot_SN_radius(E: float = 2.7e50, n:float =0.069, chi: float = 1) -> None:
     plt.show()
 
 
-def plot_SN_radius_comparison() -> None:
+def plot_SN_radius_comparison_medium():
+
+    t_arr = np.logspace(1, 7, 500)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True,
+                                   gridspec_kw={'height_ratios': [3, 1]})
+
+    r_arr1 = np.array([give_SN_radius(t_, s=0) for t_ in t_arr])
+    r_arr2 = np.array([give_SN_radius(t_, s=2) for t_ in t_arr])
+    ratio = r_arr2/r_arr1
+    
+    ax1.plot(t_arr, r_arr1, linestyle="-", label=r"$s =$"f"${0}$")
+        
+    ax1.plot(t_arr, r_arr2, linestyle="-", label=r"$s =$"f"${2}$")
+    
+    ax2.plot(t_arr, ratio, linestyle="-")
+
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.legend(fontsize=12)
+    ax1.grid()
+    ax2.grid()
+    ax2.set_xlabel(r"$t$ [yr]")
+    ax1.set_ylabel(r"$R_\mathrm{s}(t)$ [pc]")
+    ax2.set_ylabel(r"Ratio of $s_2/s_0$", fontsize=10)
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/R_SN(t)_comparing_CSM.pdf")
+    plt.show()
+
+
+def plot_SN_radius_comparison_Leahy() -> None:
     """From Cioffi et al. 1988"""
 
     t_arr = np.logspace(1, 7, 500)  # yr
@@ -786,10 +869,12 @@ if __name__ == "__main__":
     # plot_mass_loss()
     # plot_bubble_density()
     # plot_bubble_radius()
-    # plot_SN_radius()
-    # plot_SN_radius_comparison()
+    # plot_SN_radius(s=0)
+    # plot_SN_radius_comparison_medium()
+    plot_CSM_density()
+    # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()
-    plot_SN_radius_varying_parameters(AGE_GEMINGA)
+    # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
     # stars = Stars(1000, t=1e7)
     # print(stars.type)

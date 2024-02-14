@@ -772,7 +772,7 @@ def gt_zero(value):
     return value > 0
 
 ##############################################################################################################################
-def Leahy_SNR_calculations_window_hidden(t, e_sn, n_ism):
+def Leahy_SNR_calculations_window_hidden(t=100, e_sn=2.7e50, n_ism=0.069):
     global widgets, SNR, APP
 
     ab_window_open = {"ISM": False, "Ejecta": False}
@@ -781,7 +781,7 @@ def Leahy_SNR_calculations_window_hidden(t, e_sn, n_ism):
     ism_ab_type = "Solar"
     ej_ab_type = "CC"
     APP = gui.ScrollWindow("root")
-    APP.root.withdraw()     # Hides the window
+    # APP.root.withdraw()     # Hides the window
     root_id = "." + APP.container.winfo_parent().split(".")[1]
     gui.InputParam.instances[root_id] = {}
     widgets = gui.InputParam.instances[root_id]
@@ -918,15 +918,150 @@ def Leahy_SNR_calculations_window_hidden(t, e_sn, n_ism):
 
 
 
-    APP.root.destroy() # Destroys the withdrawn window
-
-    return radius
-
-
 ##############################################################################################################################
 if __name__ == '__main__':
     
-    for _ in tqdm(range(10)):
-        Leahy_SNR_calculations_window_hidden(1e51, 1)
+    ab_window_open = {"ISM": False, "Ejecta": False}
+    inverseWindowActive = False
+    # Set initial ISM abundance type
+    ism_ab_type = "Solar"
+    ej_ab_type = "CC"
+    APP = gui.ScrollWindow("root")
+    # APP.root.withdraw()     # Hides the window
+    root_id = "." + APP.container.winfo_parent().split(".")[1]
+    gui.InputParam.instances[root_id] = {}
+    widgets = gui.InputParam.instances[root_id]
+    SNR = calc.SuperNovaRemnant(root_id)
+    SNR.data["abundance"] = ABUNDANCE[ism_ab_type].copy()
+    SNR.data["ej_abundance"] = ABUNDANCE[ej_ab_type].copy()
+    APP.root.wm_title("SNR Modelling Program")
+    if APP.os == "Windows":
+        ICON = "data/Crab_Nebula.ico"
+        APP.root.tk.call("wm", "iconbitmap", APP.root._w, "-default", ICON)
+    ws = APP.root.winfo_screenwidth()
+    hs = APP.root.winfo_screenheight()
+    if APP.os == "Linux":
+        width = 1000
+    else:
+        width = 930
+    APP.root.geometry("%dx%d+%d+%d" %(width, 650, (ws-width)/2, (hs-700)/2))
+    APP.root.bind("<1>", lambda event: event.widget.focus_set())
+    APP.input = gui.LayoutFrame(APP.container, 2, row=0, column=0)
+    gui.SectionTitle(APP.input, "Input parameters:", 2)
+  
+    # Note time isn't restricted to less than t_mrg - this is accounted for in snr_calc.py
+    # If time was restricted, users could become confused due to rounding of displayed t_mrg
+    gui.InputEntry(APP.input, "t", "Age (yr):", 100, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "e_51", "Energy (x 10\u2075\u00B9 erg):", 2.7e50/1e51, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "temp_ism", "ISM Temperature (K):", 100, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "m_ej", "Ejected mass (M\u2609):", 1.4, SNR.update_output, gt_zero)
+    gui.InputDropdown(APP.input, "n", "Ejecta power-law index, n:", 0, n_change,
+                      (0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+    gui.InputDropdown(APP.input, "s", "CSM power-law index, s:", 0, s_change, (0, 2), state="disabled")
+    if APP.os == "Linux":
+        ratio_label = "Electron to ion temperature ratio Te/Ti:"
+    else:
+        ratio_label = "Electron to ion temperature ratio T\u2091\u200a/\u200aT\u1d62\u200a:"
+    gui.InputDropdown(APP.input, "T_ratio", ratio_label, "Default", update_ratio, "Custom")
+    gui.InputEntry(APP.input, "zeta_m", "Cooling adjustment factor:", 1.0, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "n_0", "ISM number density (cm\u207B\u00B3):", 0.069, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "sigma_v", "ISM turbulence/random speed (km/s):", 7.0, SNR.update_output)
+    gui.InputEntry(APP.input, "m_w", "Stellar wind mass loss (M\u2609/yr):", 1e-7, SNR.update_output, gt_zero)
+    gui.InputEntry(APP.input, "v_w", "Wind speed (km/s):", 30, SNR.update_output, gt_zero)
+    gui.SubmitButton(APP.input, "Change ISM Abundances", lambda: abundance_window(SNR.data["abundance"], "ISM"),
+                     sticky="w", padx=5, pady=(0, 5))
+    SNR.buttons["ej_ab"] = gui.SubmitButton(
+        APP.input, "Change Ejecta Abundances", lambda: abundance_window(SNR.data["ej_abundance"], "Ejecta"), sticky="w",
+        padx=5)
+    SNR.buttons["inv"] = gui.SubmitButton(APP.input, "Open Inverse Mode", inverse_window, sticky="w", padx=5, pady=(5, 5))
+    gui.InputParam(APP.input, label="Model type:")
+    
+    MODEL_FRAME = gui.LayoutFrame(APP.input, 0, row=100, column=0, columnspan=2)
+    gui.InputRadio(MODEL_FRAME, "model", None, "standard", lambda *args: model_change(),
+                   (("standard", "Standard"), ("fel", "Fractional energy loss"), ("hld", "Hot low-density media", "\n"),
+                    ("cism", "Cloudy ISM"), ("sedtay", "Sedov-Taylor (m\u2091\u2C7C = 0)", "\n")), padding=(10, 0, 0, 0))
+    
+    gui.InputEntry(APP.input, "gamma_1", "Effective \u03B3\u2081, 1 \u2264 \u03B3\u2081 \u2264 5/3:", 1.666, SNR.update_output,
+                   lambda value: 1 <= value <= 5.0 / 3.0)
+    
+    gui.InputDropdown(APP.input, "c_tau", "C/\u03C4", 2, SNR.update_output, (0, 1, 2, 4))   
+                              
+    gui.InputEntry(APP.input, "t_fel", "Fractional energy loss model start\ntime, within ST or PDS phase (yr):", 5000,
+                   SNR.update_output, lambda value: (SNR.calc["t_st"] <= value or SNR.calc["t_st"] > SNR.calc["t_pds"])
+                                                     and value <= min(SNR.calc["t_mrg"]["PDS"], SNR.calc["t_mcs"]))
+    
+    gui.InputEntry(APP.input, "t_hld", "Hot low-density media\nmodel end time (yr):", "4e5", SNR.update_output,
+                   lambda value: SNR.calc["t_c"]*0.1 <= value < 1e9)
+    
+    SNR.buttons["em"] = gui.SubmitButton(APP.input, "Emissivity", emissivity_window, pady=10)
+    
+    APP.plot_frame = gui.LayoutFrame(APP.container, (10, 0), row=0, column=1)
+    
+    gui.SectionTitle(APP.plot_frame, "Output:")
+    
+    APP.plot_controls = gui.LayoutFrame(APP.plot_frame, 0)
+    
+    gui.InputRadio(gui.LayoutFrame(APP.plot_controls, 0), "plot_type", "Plot Type:", "r", lambda *args: title_change(),
+                   (("r", "Radius"), ("v", "Velocity"), ("eMeas", "Emission Measure", "\n"), ("temper", "Temperature")), padding=(10, 0, 0, 0))
+    
+    gui.CheckboxGroup(
+        gui.LayoutFrame(APP.plot_controls, (80, 0, 0, 0), row=widgets["plot_type"].label.grid_info()["row"], column=1),
+        "Log scale:", scale_change, (("x_scale", "x-axis", "0"), ("y_scale", "y-axis", "0")), padding=(10, 0, 0, 0))
+    
+    plot_container = gui.LayoutFrame(APP.plot_frame, 0)
+    
+    SNR.graph = plt.TimePlot(plot_container, (6.4, 4.4))
+    
+    AXIS_FRAME = gui.LayoutFrame(APP.plot_frame, (0, 5), column=0)
+    
+    gui.InputDropdown(gui.LayoutFrame(AXIS_FRAME, (0, 0, 15, 0), row=0, column=0), "range", "Plotted Time:", "Current",
+                      limit_change, ("Current", "Reverse Shock Lifetime", "ED-ST", "PDS", "MCS"), width=19,
+                      font="-size 9")
+    
+    gui.InputSpinbox(gui.LayoutFrame(AXIS_FRAME, 0, row=0, column=1), "xmin", "Min:", "0", increment_xlimits,
+                     lambda value: value != widgets["xmax"].get_value(), increment=10, from_=0, to=100000000, width=8)
+    
+    gui.InputSpinbox(gui.LayoutFrame(AXIS_FRAME, 0, row=0, column=2), "xmax", "Max:", "900", increment_xlimits,
+                     lambda value: value != widgets["xmin"].get_value(), increment=100, from_=0, to=100000000, width=8)
+    
+    APP.output = gui.LayoutFrame(APP.plot_frame, (0, 10), column=0, columnspan=2)
+    
+    APP.output_values = gui.LayoutFrame(APP.output, 0, row=0, column=0)
+    
+    APP.output_times = gui.LayoutFrame(APP.output, (20, 0, 0, 0), row=0, column=1)
+    
+    gui.SectionTitle(APP.output_values, "Values at specified time:", 4, 11)
+    gui.SectionTitle(APP.output_times, "Phase transition times:", 4, 11)
+    gui.OutputValue(APP.output_values, "T", "Blast-wave shock electron temperature:", "K")
+    gui.OutputValue(APP.output_values, "Tr", "Reverse shock electron temperature:", "K")
+    gui.OutputValue(APP.output_values, "r", "Blast-wave shock radius:", "pc")
+    gui.OutputValue(APP.output_values, "rr", "Reverse shock radius:", "pc")
+    gui.OutputValue(APP.output_values, "v", "Blast-wave shock velocity:", "km/s")
+    gui.OutputValue(APP.output_values, "vr", "Reverse shock velocity:", "km/s")
+    gui.OutputValue(APP.output_values, "epsi", "", "", padding=0)
+    gui.OutputValue(APP.output_times, "t-s2", "", "", padding=0)
+    gui.OutputValue(APP.output_times, "Core", "", "", padding=0)
+    gui.OutputValue(APP.output_times, "Rev", "", "", padding=0)    
+    gui.OutputValue(APP.output_times, "t-ST", "", "yr")       #Sedov-Taylor Phase
+    gui.OutputValue(APP.output_times, "t-CISM", "", "yr")       #White and Long
+    gui.OutputValue(APP.output_times, "t-PDS", "", "yr")      #Pressure Driven Snowplow
+    gui.OutputValue(APP.output_times, "t-MCS", "", "yr")      #Momentum Conserving Shell
+    gui.OutputValue(APP.output_times, "t-HLD", "", "yr")
+    gui.OutputValue(APP.output_times, "t-FEL", "", "yr")
+    gui.OutputValue(APP.output_times, "t-MRG", "", "yr")
+
+    APP.root.bind("<Return>", enter_pressed)
+    SNR.update_output()
+    model_change(False)
+    s_change(False)
+    n_change(False)
+    APP.root.update()
+
+    radius = SNR.print_data()
+
+    widgets["t_fel"].value_var.set(round(SNR.calc["t_pds"]))
+    APP.canvas.config(scrollregion=(0, 0, APP.container.winfo_reqwidth(), APP.container.winfo_reqheight()))
+
+    APP.root.mainloop()
 
 ##############################################################################################################################
