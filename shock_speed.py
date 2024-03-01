@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
+from tqdm import tqdm
 
 from zeroordergalaxy import give_ST_radius
 
@@ -155,7 +156,7 @@ def give_speed_radius_analytical(
 
             u_arr.append(u_element)
 
-    u_arr = (gamma+1)/2 * (np.array(u_arr))**(1/2)
+    u_arr = (gamma+1)/2 * (np.abs(u_arr))**(1/2)
 
     return u_arr  # cm.s-1
 
@@ -183,9 +184,9 @@ def integrate_simpson(
 
 
 def give_time_radius_integration(
+        r: float,
         r_w: float,
-        r_b: float,
-        n: int = 100
+        r_b: float
 ) -> np.ndarray:
     """Finds the relationship between time and position of the SNR by
     integrating on the inverse of the SNR speed.
@@ -196,21 +197,13 @@ def give_time_radius_integration(
         n (int, optional): Number of integration steps. Defaults to 100.
 
     Returns:
-        np.ndarray: time (in s) and radius (in cm) arrays.
+        float: time (in s) float.
     """
-    r_arr = np.logspace(16, 23, int(n))
-    t_arr = []
 
-    for r_element in r_arr:
-        # t_arr.append(integrate_simpson(
-        # lambda x:1/give_speed_radius_analytical(x), 0.001, r_element, N))
-        t_arr.append(
-            integrate.quad(lambda x: 1 /
-                           give_speed_radius_analytical(x, r_w, r_b),
-                           0,
-                           r_element)[0])
+    t =  integrate.quad(lambda x: 1 /
+                        give_speed_radius_analytical(x, r_w, r_b), 0.001, r)[0]
 
-    return np.array(t_arr), r_arr
+    return t
 
 
 def give_time_radius_integration2(
@@ -305,7 +298,11 @@ def give_speed_time_integration(
 ) -> np.ndarray:
     """t in kyr, returns u(t) in cm.s-1"""
 
-    t_arr, r_arr = give_time_radius_integration(r_w, r_b)
+    r_arr = np.logspace(13, 22, 100) # cm
+
+    t_arr = np.array([give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in r_arr])
+
     u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
     t_arr = t_arr/(1e3*yr)  # kyr
 
@@ -316,34 +313,46 @@ def give_speed_time_integration(
 
 def plot_radius_time_integration() -> None:
 
+    r_arr = np.logspace(13, 22, 100) # cm
+
     fig = plt.figure()
+    t_arr = np.array([give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in r_arr])
+    t_arr = t_arr/yr
+    r_arr = r_arr/pc  # pc
 
-    for n in [10, 100, 500, 1000, 2000]:
-        t_arr, r_arr = give_time_radius_integration(r_w, r_b, n)
-        t_arr = t_arr/(1e3*yr)  # kyr
-        r_arr = r_arr/pc  # pc
+    plt.plot(t_arr, r_arr, label="full integration")
 
-        plt.plot(r_arr, t_arr, label=r"n = {}".format(n))
-    plt.axvline(x=r_w/pc, color='red', linestyle="--",
+    t_arr = np.logspace(-3, 12) # yr
+
+    r_arr = np.array([give_time_radius_integration2(r_w, r_b, t_)
+                     for t_ in t_arr])
+    r_arr = r_arr/pc
+    
+    plt.plot(t_arr, r_arr, label="2nd integration method")
+
+
+    plt.axhline(y=r_w/pc, color='black', linestyle="--",
                 label=r"$r_\mathrm{w}$")
-    plt.axvline(x=r_b/pc, color='green', linestyle="-.",
+    plt.axhline(y=r_b/pc, color='black', linestyle="-.",
                 label=r"$r_\mathrm{b}$")
-    plt.xlabel(r"$r$ [pc]")
-    plt.ylabel(r"$t$ [kyr]")
+    plt.ylabel(r"$r$ [pc]")
+    plt.xlabel(r"$t$ [yr]")
     plt.xscale("log")
     plt.yscale("log")
     plt.legend()
     plt.grid()
     fig.tight_layout()
-    # plt.savefig("R(t,n).png")
+    plt.savefig("Project Summary/Images/R(t)_integration.pdf")
     plt.show()
 
 
 def plot_speed_time_integration() -> None:
 
-    r_s = 1000*pc  # cm
+    r_arr = np.logspace(13, 22, 100) # cm
 
-    t_arr, r_arr = give_time_radius_integration(r_w, r_b)
+    t_arr = np.array([give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in r_arr])
     u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
     t_arr = t_arr/(1e3*yr)  # kyr
 
@@ -384,8 +393,8 @@ if __name__ == "__main__":
 
     # plot_mass_radius_analytical()
     # plot_speed_radius_analytical()
-    # plot_radius_time_integration()
-    plot_speed_time_integration()
+    plot_radius_time_integration()
+    # plot_speed_time_integration()
 
     #  print(give_speed_time_integration(1))
 

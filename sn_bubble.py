@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import scipy.integrate as inte
+import scipy.optimize as opt
 from scipy.stats import lognorm
 import random
+import shock_speed as shock
 
 np.set_printoptions(precision=3)
 plt.rcParams.update({'font.size': 17})
@@ -265,31 +267,37 @@ def give_wind_radius(
     L_arr = np.array([])
     u_arr = np.array([])
     M_dot_arr = np.array([])
+    type_arr = np.array([])
     for M_ in M:
         if M_ > 16:
             L_arr = np.append(L_arr, give_wind_luminosity_O(M_))  # erg.s-1
+            type_arr = np.append(type_arr, "O")
         else:
             L_arr = np.append(L_arr, give_wind_luminosity_B(M_))
+            type_arr = np.append(type_arr, "B")
     for M_ in M:
         if M_ < 10**1.6:
             M_dot_arr = np.append(
                 M_dot_arr, give_mass_loss_RSG(M_)/(np.pi*1e7))  # Msol.s-1
             u_arr = np.append(u_arr, give_wind_speed_RSG(M_)*1e5)  # cm.s-1
+            type_arr = np.append(type_arr, "RSG")
         else:
             WR_type = random.choice(["WC", "WN"])
             if WR_type == "WC":
                 M_dot_arr = np.append(
                     M_dot_arr, give_mass_loss_WC(M_)/(np.pi*1e7))  # Msol.s-1
                 u_arr = np.append(u_arr, give_wind_speed_WC(M_)*1e5)  # cm.s-1
+                type_arr = np.append(type_arr, WR_type)
             if WR_type == "WN":
                 M_dot_arr = np.append(
                     M_dot_arr, give_mass_loss_WN(M_)/(np.pi*1e7))  # Msol.s-1
                 u_arr = np.append(u_arr, give_wind_speed_WN(M_)*1e5)  # cm.s-1
+                type_arr = np.append(type_arr, WR_type)
     if t is None:
         t = give_MS_time(M)  # yr
     r = 1.3 * (M_dot_arr/1e-5)**(1/2) * (u_arr/1e6)**(1/2) * \
         (L_arr/1e36)**(-7/35) * (n_ISM)**(-21/70) * (t/1e6)**(14/35)  # pc
-    return r
+    return r, type_arr
 
 
 def give_SN_PDS_time(
@@ -301,6 +309,16 @@ def give_SN_PDS_time(
     Returns the Pressure Driven Snowplough time in yr"""
     t = 3.61e4 * (E/1e51)**(3/14) * (chi)**(-5/14) * (n)**(-4/7)  # yr
     return t/np.exp(1)
+
+
+def give_SN_PDS_time2(
+    E: float = 2.7e50,
+    n: float = 0.069,
+) -> float:
+    """Formula and parameters from Vink 2012.
+    Returns the Pressure Driven Snowplough time in yr"""
+    t = 44600 * (E/1e51)**(1/3) * (n)**(-1/3)   # yr
+    return t
 
 
 def give_SN_PDS_radius(
@@ -406,14 +424,14 @@ def give_SN_radius(
     t_PDS = give_SN_PDS_time(E, n, chi)
     t_MCS = give_SN_MCS_time(E, n, chi)
     t_max = give_SN_merge_time(give_ISM_sound_speed(T), E, n)
-    if t < t_PDS:
+    if t > t_max:
+        r = 0
+    elif t < t_PDS:
         r = give_SN_ST_radius(t, E, n, s)
     elif t < t_MCS:
         r = give_SN_PDS_radius(t, E, n, chi, s)
     elif t < t_max:
         r = give_SN_MCS_radius(t, E, n, chi)
-    if t > t_max:
-        r = 0
     return r
 
 
@@ -421,37 +439,69 @@ def give_CSM_density(r:float, M:float = 8, n_ISM:float = 0.069):
 
     M = np.array([M])
 
-    r_w = give_wind_radius(M) # pc
+    r_w = give_wind_radius(M)[0] # pc
     r_b = give_bubble_radius(M) # pc
 
     if r < r_w:
         n = 1e10/m_p * (r*pc)**(-2) # /cm3
     elif r < r_b:
-        n = give_bubble_density(M)[0]
+        n = give_bubble_density(M, n_ISM)[0]
     else:
         n = n_ISM
 
     return n
 
 
-def plot_CSM_density():
+def give_mass_radius(r:float, M:float = 8, n_ISM:float = 0.069):
+
+    M = np.array([M])
+    r = np.array([r])
+
+    r_w = give_wind_radius(M)[0] # pc
+    r_b = give_bubble_radius(M) # pc
+
+    M_loss = give_mass_loss_RSG(M)*Msol/yr # g/s
+    u_w = give_wind_speed_RSG(M)*1e5 # cm/s
+
+    if r < r_w:
+        M_shock = M_loss/u_w*(r*pc) # g
+        return M_shock/Msol # Msol
+    
+    if r < r_b:
+        n_bubble = give_bubble_density(M, n_ISM) # /cm3
+        M_shock = M_loss/u_w*(r_w*pc) + 4*np.pi/3*n_bubble*m_p*(r*pc)**3 # g
+        return M_shock/Msol # Msol
+
+    M_shock = 4*np.pi/3*n_ISM*m_p*((r*pc)**3) # g, ISM
+
+    return M_shock/Msol # Msol
+
+
+def plot_CSM_density_mass():
 
     r_arr = np.logspace(-4, 4, 500) # pc
 
-    fig = plt.figure()
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
     M_arr = np.linspace(8, 120, 5)
 
     for M_ in M_arr:
         n_arr = np.array([give_CSM_density(r_, M_) for r_ in r_arr]) # /cm3
-        plt.plot(r_arr, n_arr, label=f"$M={M_:.0f}$ M$_\odot$")
+        ax1.plot(r_arr, n_arr, label=f"$M={M_:.0f}$ M$_\odot$")
 
-    plt.xlabel(r"$r$ [pc]")
-    plt.ylabel(r"$n$ [cm$^{-3}$]")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid()
-    plt.legend()
+        mass_arr = np.array([give_mass_radius(r_, M_) for r_ in r_arr]) # Msol
+        ax2.plot(r_arr, mass_arr, label=f"$M={M_:.0f}$ M$_\odot$")
+        ax2.axhline(y=1.4, linestyle = "--", color="black")
+
+    ax2.set_xlabel(r"$r$ [pc]")
+    ax1.set_ylabel(r"$n$ [cm$^{-3}$]")
+    ax2.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.grid()
+    ax1.legend(fontsize=9)
+    ax2.set_ylabel(r"$M$ [M$_\odot$]")
+    ax2.set_yscale("log")
+    ax2.grid()
     fig.tight_layout()
     plt.show()
 
@@ -798,15 +848,15 @@ def plot_bubble_radius() -> None:
     fig = plt.figure()
     plt.plot(M, give_bubble_radius(M, t=1e6), color="red", linestyle="-",
              label=r"$t = {:.2f}$ Myr".format(1)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=1e6), color="red", linestyle="--",
+    plt.plot(M, give_wind_radius(M, t=1e6)[0], color="red", linestyle="--",
              label=r"$t = {:.2f}$ Myr".format(1)+", r$_\mathrm{w}$")
     plt.plot(M, give_bubble_radius(M, t=5e6), color="blue", linestyle="-",
              label=r"$t = {:.2f}$ Myr".format(5)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=5e6), color="blue", linestyle="--",
+    plt.plot(M, give_wind_radius(M, t=5e6)[0], color="blue", linestyle="--",
              label=r"$t = {:.2f}$ Myr".format(5)+", r$_\mathrm{w}$")
     plt.plot(M, give_bubble_radius(M, t=1e7), color="green", linestyle="-",
              label=r"$t = {:.2f}$ Myr".format(10)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=1e7), color="green", linestyle="--",
+    plt.plot(M, give_wind_radius(M, t=1e7)[0], color="green", linestyle="--",
              label=r"$t = {:.2f}$ Myr".format(10)+", r$_\mathrm{w}$")
     plt.xscale("log")
     plt.yscale("log")
@@ -815,6 +865,62 @@ def plot_bubble_radius() -> None:
     plt.xlabel(r"$M$ [M$_\odot$]")
     plt.ylabel(r"$r$ [pc]")
     fig.tight_layout()
+    plt.show()
+
+
+def give_SN_ST_time(E:float = 2.7e50,
+                    n:float = 0.069,
+                    M:float = 8,
+                    Mej:float = 1.4,
+                    s:int = 0):
+    """Time in s"""
+    if s==0:
+        t_SN = 423*(E/1e51)**(-1/2) * (Mej)**(5/6) * (n)**(-1/3)
+    elif s==2:
+        M_loss = give_mass_loss_RSG(M) # Msol/yr    
+        v_w = give_wind_speed_RSG(M)*1e5 # cm/s
+        t_SN = 1770*(E/1e51)**(-1/2) * (Mej)**(3/2) * \
+                (M_loss/1e-5)**(-1) * (v_w/1e6)
+    return t_SN # yr
+
+
+def plot_characteristic_time_scales():
+
+    M = np.array([16])
+
+    r_w = give_wind_radius(M)[0]*pc # cm
+    r_b = give_bubble_radius(M)*pc # cm
+
+    t_w = shock.give_time_radius_integration(r_w, r_w, r_b)/yr
+    t_b = shock.give_time_radius_integration(r_b, r_w, r_b)/yr
+    t_PDS = give_SN_PDS_time()
+    t_PDS2 = give_SN_PDS_time2()
+    t_merger = give_SN_merge_time(give_ISM_sound_speed(100))
+
+    r_arr = np.logspace(15, 22, 1000) # cm
+    t_arr = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in r_arr])/yr
+    r_arr = r_arr/pc
+
+    pOpt, pCov = opt.curve_fit(lambda x, a, b: b*x**a, t_arr[50:], r_arr[50:])
+    A, B = pOpt
+
+    fig = plt.figure()
+    plt.plot(t_arr/1e3, r_arr, color="black", label="$R(t)$")
+    plt.plot(t_arr[50:]/1e3, B*t_arr[50:]**A, label=f"Fit with A={A:.2f}, B={B:.2f}")
+    plt.axvline(x=t_w/1e3, linestyle = "--", color="red", label=r"$t_\mathrm{w}$")
+    plt.axvline(x=t_b/1e3, linestyle = "--", color="green", label=r"$t_\mathrm{b}$")
+    plt.axvline(x=t_PDS/1e3, linestyle = "--", color="purple", label=r"$t_\mathrm{PDS}$ Cioffi+1988")
+    plt.axvline(x=t_PDS2/1e3, linestyle = "--", color="pink", label=r"$t_\mathrm{PDS}$ Vink 2012")
+    plt.axvline(x=t_merger/1e3, linestyle = "--", color="orange", label=r"$t_\mathrm{merger}$")
+    plt.xlabel(r"$t$ [kyr]")
+    plt.ylabel(r"$R$ [pc]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    plt.legend(fontsize=9)
+    fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Characteristic_Timescales.pdf")
     plt.show()
 
 
@@ -871,8 +977,11 @@ if __name__ == "__main__":
     # plot_bubble_radius()
     # plot_SN_radius(s=0)
     # plot_SN_radius_comparison_medium()
-    plot_CSM_density()
-    # plot_SN_radius_comparison_Leahy()
+    # plot_CSM_density_mass()
+
+    # plot_characteristic_time_scales()
+
+    plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 

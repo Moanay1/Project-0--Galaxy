@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tick
 import scipy.integrate as inte
 import random
 import sn_bubble as SN
@@ -333,6 +334,7 @@ def test_kick_velocity() -> None:
     plt.xlabel(r"$v_\mathrm{k}$ [km$\cdot$s$^{-1}$]")
     plt.ylabel("PDF")
     plt.xlim(np.min(arr), np.max(arr))
+    plt.grid()
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(vk).pdf")
     # plt.show()
