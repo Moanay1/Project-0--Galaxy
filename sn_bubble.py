@@ -489,9 +489,15 @@ def plot_CSM_density_mass():
         n_arr = np.array([give_CSM_density(r_, M_) for r_ in r_arr]) # /cm3
         ax1.plot(r_arr, n_arr, label=f"$M={M_:.0f}$ M$_\odot$")
 
-        mass_arr = np.array([give_mass_radius(r_, M_) for r_ in r_arr]) # Msol
-        ax2.plot(r_arr, mass_arr, label=f"$M={M_:.0f}$ M$_\odot$")
-        ax2.axhline(y=1.4, linestyle = "--", color="black")
+        mass_arr = np.array([give_mass_radius(r_, M_, n_ISM=1) for r_ in r_arr]) # Msol
+        ax2.plot(r_arr, mass_arr)
+
+    ax2.axhline(y=5, linestyle = "--", linewidth=0.5,
+                color="black", label=r"$M_\mathrm{ej}$")
+
+    ISM_density_mass = 4*np.pi/3*m_p*(r_arr*pc)**3/Msol
+    ax2.plot(r_arr, ISM_density_mass, color="black", linestyle="-.",
+             label=r"Mass accumulated in a"u"\n"r"normal homogeneous ISM")
 
     ax2.set_xlabel(r"$r$ [pc]")
     ax1.set_ylabel(r"$n$ [cm$^{-3}$]")
@@ -499,6 +505,7 @@ def plot_CSM_density_mass():
     ax1.set_yscale("log")
     ax1.grid()
     ax1.legend(fontsize=9)
+    ax2.legend(fontsize=9)
     ax2.set_ylabel(r"$M$ [M$_\odot$]")
     ax2.set_yscale("log")
     ax2.grid()
@@ -843,7 +850,7 @@ def plot_bubble_density() -> None:
 
 
 def plot_bubble_radius() -> None:
-    M = np.linspace(2, 150, 500)  # Solar masses
+    M = np.linspace(8, 150, 500)  # Solar masses
 
     fig = plt.figure()
     plt.plot(M, give_bubble_radius(M, t=1e6), color="red", linestyle="-",
@@ -897,19 +904,22 @@ def plot_characteristic_time_scales():
     t_PDS2 = give_SN_PDS_time2()
     t_merger = give_SN_merge_time(give_ISM_sound_speed(100))
 
-    r_arr = np.logspace(15, 22, 1000) # cm
+    r_arr = np.logspace(16, 21, 1000) # cm
     t_arr = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
                       for r_ in r_arr])/yr
+    t_arr2 = np.array([shock.give_time_radius_integration_constant_density(r_)
+                     for r_ in r_arr])/yr
     r_arr = r_arr/pc
 
     pOpt, pCov = opt.curve_fit(lambda x, a, b: b*x**a, t_arr[50:], r_arr[50:])
     A, B = pOpt
 
     fig = plt.figure()
-    plt.plot(t_arr/1e3, r_arr, color="black", label="$R(t)$")
-    plt.plot(t_arr[50:]/1e3, B*t_arr[50:]**A, label=f"Fit with A={A:.2f}, B={B:.2f}")
-    plt.axvline(x=t_w/1e3, linestyle = "--", color="red", label=r"$t_\mathrm{w}$")
-    plt.axvline(x=t_b/1e3, linestyle = "--", color="green", label=r"$t_\mathrm{b}$")
+    plt.plot(t_arr/1e3, r_arr, linewidth="2", label="$R(t)$ in CSM")
+    plt.plot(t_arr2/1e3, r_arr, linewidth="2", label="$R(t)$ in ISM")
+    # plt.plot(t_arr[50:]/1e3, B*t_arr[50:]**A, label=f"Fit with A={A:.2f}, B={B:.2f}")
+    plt.axvline(x=t_w/1e3, linestyle = ":", color="black", label=r"$t_\mathrm{w}$")
+    plt.axvline(x=t_b/1e3, linestyle = "-.", color="black", label=r"$t_\mathrm{b}$")
     plt.axvline(x=t_PDS/1e3, linestyle = "--", color="purple", label=r"$t_\mathrm{PDS}$ Cioffi+1988")
     plt.axvline(x=t_PDS2/1e3, linestyle = "--", color="pink", label=r"$t_\mathrm{PDS}$ Vink 2012")
     plt.axvline(x=t_merger/1e3, linestyle = "--", color="orange", label=r"$t_\mathrm{merger}$")
@@ -920,7 +930,7 @@ def plot_characteristic_time_scales():
     plt.grid()
     plt.legend(fontsize=9)
     fig.tight_layout()
-    # plt.savefig("Project Summary/Images/Characteristic_Timescales.pdf")
+    plt.savefig("Project Summary/Images/Characteristic_Timescales.pdf")
     plt.show()
 
 
@@ -979,9 +989,9 @@ if __name__ == "__main__":
     # plot_SN_radius_comparison_medium()
     # plot_CSM_density_mass()
 
-    # plot_characteristic_time_scales()
+    plot_characteristic_time_scales()
 
-    plot_SN_radius_comparison_Leahy()
+    # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 

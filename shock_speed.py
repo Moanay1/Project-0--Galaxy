@@ -3,9 +3,17 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 from tqdm import tqdm
 
-from zeroordergalaxy import give_ST_radius
-
 np.set_printoptions(precision=1)
+
+
+def give_ST_radius(t: np.ndarray) -> np.ndarray:
+    """t in yr, from ST paper"""
+    m_p = 1.6726e-24  # g
+    E = 2.7e50  # erg.s-1
+    rho_ISM = m_p * 0.069  # g.cm-3
+    t = t * np.pi * 1e7  # s
+    r = (2.026*E/rho_ISM)**(1/5)*t**(2/5)
+    return r/3e18  # pc
 
 
 def give_mass_radius_analytical(
@@ -161,6 +169,53 @@ def give_speed_radius_analytical(
     return u_arr  # cm.s-1
 
 
+def give_speed_radius_analytical_constant_density(
+        r: np.ndarray,
+        E: float = 2.7e50,
+        M: float = 1.989e33
+) -> np.ndarray:
+    """Gives the speed of the shock at a radius `r`, for a SNR
+    propagating in a constant density ISM. The computation is
+    analytical and follows Cristofari et al. 2020.
+
+    Args:
+        r (np.ndarray): cm, radius at which we want to know the mass
+        E (float, optional): erg, energy emitted during the SN.
+            Defaults to E_SN = 1e51 erg.
+        M (float, optional): g, mass ejected during the SN.
+            Defaults to M_ej = 1.989e33 g.
+
+    Returns:
+        np.ndarray: cm/s, speed of the shock at radius `r`.
+    """
+    u_arr = []
+
+    mass = M + 4*np.pi/3*rho_ISM*r**3
+
+    if type(r) in [np.float64, int, float]:
+        factor = 2*alpha*E / (mass**2 * r**alpha)
+        
+        u_element = factor\
+            * (M*r**alpha/alpha
+                + 4*np.pi/3*rho_ISM*r**(alpha+3)/(alpha+3))
+
+        u_arr = u_element
+
+    else:
+        for r_ in r:
+            factor = 2*alpha*E / (mass**2 * r_**alpha)
+        
+            u_element = factor\
+                * (M*r_**alpha/alpha
+                    + 4*np.pi/3*rho_ISM*r_**(alpha+3)/(alpha+3))
+
+            u_arr.append(u_element)
+
+    u_arr = (gamma+1)/2 * (np.abs(u_arr))**(1/2)
+
+    return u_arr  # cm.s-1
+
+
 def integrate_simpson(
         f,
         a: float,
@@ -194,14 +249,31 @@ def give_time_radius_integration(
     Args:
         r_w (float): cm, wind termination shock radius
         r_b (float): cm, bubble radius
-        n (int, optional): Number of integration steps. Defaults to 100.
 
     Returns:
         float: time (in s) float.
     """
 
     t =  integrate.quad(lambda x: 1 /
-                        give_speed_radius_analytical(x, r_w, r_b), 0.001, r)[0]
+         give_speed_radius_analytical(x, r_w, r_b), 0.001, r)[0]
+
+    return t
+
+
+def give_time_radius_integration_constant_density(
+        r: float,
+) -> np.ndarray:
+    """Finds the relationship between time and position of the SNR by
+    integrating on the inverse of the SNR speed.
+
+    Args:
+
+    Returns:
+        float: time (in s) float.
+    """
+
+    t =  integrate.quad(lambda x: 1 /
+         give_speed_radius_analytical_constant_density(x), 0.001, r)[0]
 
     return t
 
@@ -274,9 +346,11 @@ def plot_speed_radius_analytical() -> None:
 
     u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
     r_arr = r_arr/pc
+    u_arr2 = give_speed_radius_analytical_constant_density(r_arr)
 
     fig = plt.figure()
-    plt.plot(r_arr, u_arr, label=r"Analytical")
+    plt.plot(r_arr, u_arr, label=r"Analytical CSM")
+    plt.plot(r_arr, u_arr2, label=r"Analytical constant ISM")
     plt.axvline(x=r_w/pc, color='red', linestyle="--",
                 label=r"$r_\mathrm{w}$")
     plt.axvline(x=r_b/pc, color='green', linestyle="-.",
@@ -291,45 +365,22 @@ def plot_speed_radius_analytical() -> None:
     plt.show()
 
 
-def give_speed_time_integration(
-        t: np.ndarray,
-        r_w: float,
-        r_b: float
-) -> np.ndarray:
-    """t in kyr, returns u(t) in cm.s-1"""
-
-    r_arr = np.logspace(13, 22, 100) # cm
-
-    t_arr = np.array([give_time_radius_integration(r_, r_w, r_b)
-                      for r_ in r_arr])
-
-    u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
-    t_arr = t_arr/(1e3*yr)  # kyr
-
-    for i in range(len(t_arr)):
-        if t_arr[i] > t:
-            return u_arr[i]
-
-
 def plot_radius_time_integration() -> None:
 
-    r_arr = np.logspace(13, 22, 100) # cm
+    r_arr = np.logspace(16, 21, 100) # cm
 
     fig = plt.figure()
     t_arr = np.array([give_time_radius_integration(r_, r_w, r_b)
                       for r_ in r_arr])
     t_arr = t_arr/yr
+
+    t_arr2 = np.array([give_time_radius_integration_constant_density(r_)
+                     for r_ in r_arr])
+    t_arr2 = t_arr2/yr
     r_arr = r_arr/pc  # pc
-
-    plt.plot(t_arr, r_arr, label="full integration")
-
-    t_arr = np.logspace(-3, 12) # yr
-
-    r_arr = np.array([give_time_radius_integration2(r_w, r_b, t_)
-                     for t_ in t_arr])
-    r_arr = r_arr/pc
     
-    plt.plot(t_arr, r_arr, label="2nd integration method")
+    plt.plot(t_arr, r_arr, label="CSM")
+    plt.plot(t_arr2, r_arr, label="Constant ISM")
 
 
     plt.axhline(y=r_w/pc, color='black', linestyle="--",
@@ -340,10 +391,10 @@ def plot_radius_time_integration() -> None:
     plt.xlabel(r"$t$ [yr]")
     plt.xscale("log")
     plt.yscale("log")
-    plt.legend()
+    plt.legend(fontsize=12)
     plt.grid()
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/R(t)_integration.pdf")
+    plt.savefig("Project Summary/Images/R(t)_comparison_ambient_medium.pdf")
     plt.show()
 
 
