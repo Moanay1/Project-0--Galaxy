@@ -470,6 +470,44 @@ def give_is_inside_proportion(
     return proportion
 
 
+def give_bow_shock_time(
+        n: int = 100
+) -> np.ndarray:
+    """Gives the bow shock-time, which is in first approximation the
+    time at which the distance of the pulsar is larger than the SNR
+    radius.
+
+    Args:
+        n (int, optional): Number of PSR+SNR systems. Defaults to 100.
+
+    Returns:
+        np.ndarray: bow shock times for each pulsar.
+    """
+    number_t_points = 100
+    t_arr = np.logspace(3, 7, number_t_points)
+    t_bs_arr = np.array([])
+
+    for _ in range(n):
+        E_SN = give_E_SN()
+        n_ISM = give_n_ISM()
+        vk = give_kick_velocity()*1e5/(3e18)*(np.pi*1e7)  # conversion from km/s to pc/yr
+        pulsar_distance = vk*t_arr # pc
+        SNR_radius = 1000000 #pc
+        i = 0
+        
+        while SNR_radius >= pulsar_distance[i] and i < number_t_points-1:
+            SNR_radius = SN.give_SN_radius(t=t_arr[i], E=E_SN, n=n_ISM)
+            i += 1
+
+        t_bs_arr = np.append(t_bs_arr, t_arr[i])
+
+    return t_bs_arr
+
+
+
+        
+
+
 if __name__ == "__main__":
     # TESTS
 

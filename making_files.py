@@ -477,6 +477,25 @@ def plot_morphology_PSR():
     plt.show()
 
 
+def plot_bow_shock_time_distribution():
+
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
+
+    _, bins = np.histogram(t_bs_arr, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+
+    plt.hist(t_bs_arr, bins=logbins, histtype="step")
+    plt.xscale("log")
+    plt.xlabel(r"$t_\mathrm{BS}$ [yr]")
+    plt.ylabel(r"Number of pulsars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/t_BS.pdf")
+    plt.show()
+
+
 
 t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
 
@@ -486,11 +505,13 @@ if __name__ == "__main__":
     # give_inside_proportion()
 
     # give_inside_proportion_with_time_same_age()
-    give_inside_proportion_with_time_varying_parameters()
+    # give_inside_proportion_with_time_varying_parameters()
 
     # check_number_of_realisations()
 
     # plot_age_SNR()
     # plot_morphology_PSR()
+
+    plot_bow_shock_time_distribution()
 
     1

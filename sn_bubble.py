@@ -930,7 +930,7 @@ def plot_characteristic_time_scales():
     plt.grid()
     plt.legend(fontsize=9)
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/Characteristic_Timescales.pdf")
+    plt.savefig(f"Project Summary/Images/Characteristic_Timescales_M={M[0]}.pdf")
     plt.show()
 
 
