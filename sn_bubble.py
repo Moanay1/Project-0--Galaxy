@@ -989,7 +989,7 @@ if __name__ == "__main__":
     # plot_SN_radius_comparison_medium()
     # plot_CSM_density_mass()
 
-    plot_characteristic_time_scales()
+    # plot_characteristic_time_scales()
 
     # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()

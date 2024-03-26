@@ -279,14 +279,14 @@ def test_n_ISM() -> None:
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 0.069, 5.1)/inte.quad(
         lambda x: SN.make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
-    plt.hist(arr, histtype="step", density=True, bins=logbins)
+    plt.hist(arr, histtype="step", bins=logbins, density=True)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     plt.grid()
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
+    # plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
     plt.show()
 
 
@@ -519,7 +519,7 @@ if __name__ == "__main__":
     # test_pick_arm()
 
     # test_E_SN()
-    # test_n_ISM()
+    test_n_ISM()
 
     # create_galactic_coordinates(1e4)
 

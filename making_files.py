@@ -3,6 +3,7 @@ import zeroordergalaxy
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as col
 import scipy.optimize as opt
 import os
 import time
@@ -525,6 +526,55 @@ def plot_bow_shock_time_distribution():
     plt.show()
 
 
+def plot_ATNF_pulsars_t_BS():
+    """Use the definition of Martin+2022 for the selection of pulsars
+    from the ATNF catalog:
+    Dist <= 1 kpc
+    Age > 60e3 yr (and Age < 1e8 yr)
+    Age < 1e8 yr
+    Edot >= 1e33 erg.s-1
+    """
+
+    data = np.genfromtxt("Nearby Pulsars.txt", skip_header=3)
+
+    names = data[:,1]
+    distances = data[:,3] # kpc
+    ages = data[:,4]/1e3 # kyr
+    powers = data[:,5] # erg.s-1
+
+    colors = [plt.cm.jet(i) for i in powers/np.max(powers)]
+
+    fig, axes = plt.subplots(2, 1, sharex=True, 
+                                   gridspec_kw={'height_ratios': [2, 1]})
+    ax1, ax2 = axes
+
+    ax1.scatter(ages, distances, linestyle = "--", color=colors)
+    #sm = plt.cm.ScalarMappable(cmap=plt.get_cmap("jet"), norm=col.LogNorm(
+        #vmin=np.min(powers), vmax=np.max(powers)))
+    #cbar = fig.colorbar(sm, ax=axes.ravel().tolist())
+    #cbar.set_label(r"$\dot{E}$ [erg s$^{-1}$]")
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.set_xlabel(r"$t$ [kyr]")
+    ax1.set_ylabel(r"$d$ [kpc]")
+    ax1.grid()
+
+
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
+
+    _, bins = np.histogram(t_bs_arr, bins=20)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    ax2.hist(t_bs_arr, bins=logbins, histtype="step")
+    ax2.set_xscale("log")
+    ax2.set_xlabel(r"$t_\mathrm{BS}$ [kyr]")
+    ax2.set_ylabel(r"Pulsars")
+    ax2.grid()
+    fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/ATNF_pulsars_distribution.pdf")
+    plt.show()
+
+
 
 t_arr = np.logspace(np.log10(1e3), np.log10(1e7), 40, endpoint=True)
 
@@ -542,5 +592,6 @@ if __name__ == "__main__":
     # plot_morphology_PSR()
 
     # plot_bow_shock_time_distribution()
+    plot_ATNF_pulsars_t_BS()
 
     1
