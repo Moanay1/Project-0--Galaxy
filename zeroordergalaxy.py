@@ -501,7 +501,7 @@ def give_bow_shock_time(
 
         t_bs_arr = np.append(t_bs_arr, t_arr[i])
 
-    return t_bs_arr
+    return t_bs_arr/1e3 #kyr
 
 
 

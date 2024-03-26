@@ -479,25 +479,54 @@ def plot_morphology_PSR():
 
 def plot_bow_shock_time_distribution():
 
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, 
+                                   gridspec_kw={'height_ratios': [2, 1]})
+
+    colors = ["blue", "orange"]
+    variable = [True, False]
+
+    for i in range(len(variable)):
+
+        data = np.genfromtxt(f"Galaxies/Pulsars_n1000_r100_varying_parameters_{variable[i]}.csv", skip_header=1, delimiter=",")
+        time_pulsars = data[:,0]
+        percentage = data[:,1]
+        xL = data[:,2]
+        xU = data[:,3]
+
+        ax1.plot(time_pulsars/1e3, percentage, linewidth=0.5, color=colors[i],
+                 label=f"Parameters changing {variable[i]}")
+        ax1.fill_between(t_arr/1e3, xL, xU,
+                         alpha=0.2, color=colors[i],
+                         label=r"2$\sigma$ "f"{variable[i]}")
+        
+    ax1.axvline(x=342, linestyle="--", color="red",
+                label=r"Geminga: 342 kyr")
+    ax1.axvline(x=110, linestyle="-.", color="red",
+                label=r"Monogem: 110 kyr")
+    
+    ax1.set_xscale("log")
+    ax1.set_xlabel("Pulsar age [kyr]")
+    ax1.set_ylabel("Pulsars in SNR [%]")
+    ax1.legend(fontsize = 9)
+    ax1.grid()
+
     t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
 
-    _, bins = np.histogram(t_bs_arr, bins=50)
+    _, bins = np.histogram(t_bs_arr, bins=20)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-    fig = plt.figure()
-
-    plt.hist(t_bs_arr, bins=logbins, histtype="step")
-    plt.xscale("log")
-    plt.xlabel(r"$t_\mathrm{BS}$ [yr]")
-    plt.ylabel(r"Number of pulsars")
-    plt.grid()
+    ax2.hist(t_bs_arr, bins=logbins, histtype="step")
+    ax2.set_xscale("log")
+    ax2.set_xlabel(r"$t_\mathrm{BS}$ [kyr]")
+    ax2.set_ylabel(r"Pulsars")
+    ax2.grid()
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/t_BS.pdf")
+    plt.savefig(r"Project Summary/Images/t_BS_evolution.pdf")
     plt.show()
 
 
 
-t_arr = np.logspace(np.log10(10e3), np.log10(1e6), 20, endpoint=True)
+t_arr = np.logspace(np.log10(1e3), np.log10(1e7), 40, endpoint=True)
 
 if __name__ == "__main__":
 
@@ -512,6 +541,6 @@ if __name__ == "__main__":
     # plot_age_SNR()
     # plot_morphology_PSR()
 
-    plot_bow_shock_time_distribution()
+    # plot_bow_shock_time_distribution()
 
     1

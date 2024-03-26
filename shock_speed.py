@@ -4,6 +4,8 @@ import scipy.integrate as integrate
 from tqdm import tqdm
 
 np.set_printoptions(precision=1)
+plt.rcParams.update({'font.size': 17})
+plt.rcParams["font.family"] = "serif"
 
 
 def give_ST_radius(t: np.ndarray) -> np.ndarray:
