@@ -278,19 +278,19 @@ def give_wind_radius(
     for M_ in M:
         if M_ < 10**1.6:
             M_dot_arr = np.append(
-                M_dot_arr, give_mass_loss_RSG(M_)/(np.pi*1e7))  # Msol.s-1
+                M_dot_arr, give_mass_loss_RSG(M_))  # Msol.s-1
             u_arr = np.append(u_arr, give_wind_speed_RSG(M_)*1e5)  # cm.s-1
             type_arr = np.append(type_arr, "RSG")
         else:
             WR_type = random.choice(["WC", "WN"])
             if WR_type == "WC":
                 M_dot_arr = np.append(
-                    M_dot_arr, give_mass_loss_WC(M_)/(np.pi*1e7))  # Msol.s-1
+                    M_dot_arr, give_mass_loss_WC(M_))  # Msol.s-1
                 u_arr = np.append(u_arr, give_wind_speed_WC(M_)*1e5)  # cm.s-1
                 type_arr = np.append(type_arr, WR_type)
             if WR_type == "WN":
                 M_dot_arr = np.append(
-                    M_dot_arr, give_mass_loss_WN(M_)/(np.pi*1e7))  # Msol.s-1
+                    M_dot_arr, give_mass_loss_WN(M_))  # Msol.s-1
                 u_arr = np.append(u_arr, give_wind_speed_WN(M_)*1e5)  # cm.s-1
                 type_arr = np.append(type_arr, WR_type)
     if t is None:
@@ -987,7 +987,7 @@ if __name__ == "__main__":
     # plot_bubble_radius()
     # plot_SN_radius(s=0)
     # plot_SN_radius_comparison_medium()
-    # plot_CSM_density_mass()
+    plot_CSM_density_mass()
 
     # plot_characteristic_time_scales()
 

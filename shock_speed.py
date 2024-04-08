@@ -380,6 +380,12 @@ def plot_radius_time_integration() -> None:
                      for r_ in r_arr])
     t_arr2 = t_arr2/yr
     r_arr = r_arr/pc  # pc
+
+    data = np.genfromtxt("ISM_density/log_fileEL", skip_header=1)
+    time = data[:,0]
+    radius = data[:,5]/3e18 #pc
+
+    plt.plot(time, radius, label="Accurate MHD Sim")
     
     plt.plot(t_arr, r_arr, label="CSM")
     plt.plot(t_arr2, r_arr, label="Constant ISM")
@@ -429,7 +435,7 @@ Msol = 1.989e33  # g/Msol
 yr = np.pi * 1e7  # s/yr
 r_w = 1.5*pc  # cm
 r_b = 28*pc  # cm
-M_ej = 1*Msol  # g
+M_ej = 5*Msol  # g
 u_w = 1e6  # cm.s-1
 M_loss = 1e-5*Msol/yr  # g.s-1
 m_p = 1.6726e-24  # g
