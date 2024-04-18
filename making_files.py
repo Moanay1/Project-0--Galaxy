@@ -575,6 +575,104 @@ def plot_ATNF_pulsars_t_BS():
     plt.show()
 
 
+def plot_giacinti_pulsars():
+
+    data = np.genfromtxt("Giacinti_pulsars.txt", delimiter=",", skip_header=1)
+
+    luminosity = 10**data[:, 2] # erg/s
+    characteristic_age = data[:,3] # kyr
+    distance = data[:,4] # kpc
+
+    fig = plt.figure()
+
+    plt.scatter(characteristic_age[2:], luminosity[2:]/distance[2:])
+    plt.scatter(characteristic_age[:2], luminosity[:2]/distance[:2], marker="*")
+    plt.xlabel(r"Characteristic age [kyr]")
+    plt.ylabel(r"$L/d$ [erg/s/kpc]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_flux_pulsars():
+
+    data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",", skip_header=4, dtype=str)
+
+    name = data[:,1]
+    luminosity = data[:,11] # erg/s
+    characteristic_age = np.float64(data[:,10])/1e3 # kyr
+    distance = np.float64(data[:,9]) # kpc
+    Edotd2 = np.float64(data[:,12]) # erg/s/kpc^2
+
+    indices_monogem_geminga = [i for i in range(len(name)) 
+               if name[i] in [" B0656+14", " J0633+1746"]]
+    
+    index_B1055_52 = [i for i in range(len(name)) 
+               if name[i] in [" B1055-52"]]
+
+    fig = plt.figure()
+
+    plt.scatter(characteristic_age, Edotd2, s=5, label="ATNF")
+    plt.scatter(characteristic_age[indices_monogem_geminga],
+                Edotd2[indices_monogem_geminga], marker="*",
+                label="ATNF")
+    plt.scatter(characteristic_age[index_B1055_52],
+                Edotd2[index_B1055_52], marker="*",
+                label="B1055-52")
+
+    data = np.genfromtxt("Giacinti_pulsars.txt", delimiter=",", skip_header=1)
+
+    luminosity_giacinti = 10**data[:, 2] # erg/s
+    characteristic_age_giacinti = data[:,3] # kyr
+    distance_giacinti = data[:,4] # kpc
+
+    plt.scatter(characteristic_age_giacinti[2:],
+                luminosity_giacinti[2:]/distance_giacinti[2:]**2,
+                label="Giacinti+2020")
+    plt.scatter(characteristic_age_giacinti[:2],
+                luminosity_giacinti[:2]/distance_giacinti[:2]**2, marker="*",
+                label="Giacinti+2020")
+
+
+    plt.xlabel(r"Characteristic age [kyr]")
+    plt.ylabel(r"$L/d^2$ [erg/s/kpc$^2$]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+
+    ####################################################################
+    # plot distance as a function of age for pulsars that have a flux
+    #   higher than Geminga
+
+    geminga = indices_monogem_geminga[1]
+    Edotd2_geminga = Edotd2[geminga]
+
+    indices_cut = [i for i in range(len(Edotd2))
+                   if Edotd2[i] > Edotd2_geminga/2]
+
+
+    fig = plt.figure()
+
+    plt.scatter(characteristic_age[indices_cut], distance[indices_cut])
+    plt.scatter(characteristic_age[indices_monogem_geminga],
+                distance[indices_monogem_geminga], marker="*")
+    plt.scatter(characteristic_age[index_B1055_52],
+                distance[index_B1055_52], marker="*",
+                label="B1055-52")
+    plt.xlabel(r"Characteristic age [kyr]")
+    plt.ylabel(r"Distance [kpc]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
+
 
 t_arr = np.logspace(np.log10(1e3), np.log10(1e7), 40, endpoint=True)
 
@@ -592,6 +690,9 @@ if __name__ == "__main__":
     # plot_morphology_PSR()
 
     # plot_bow_shock_time_distribution()
-    plot_ATNF_pulsars_t_BS()
+    # plot_ATNF_pulsars_t_BS()
+
+    # plot_giacinti_pulsars()
+    plot_flux_pulsars()
 
     1

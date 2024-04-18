@@ -160,6 +160,7 @@ def plot_SNR_MHD_simulation_Iurii():
     plt.savefig(f"Project Summary/Images/SNR_MHD_Iurii_radius.pdf")
     plt.show()
 
+
 if __name__ == "__main__":
 
     # plot_H2_density_Mertsch()
