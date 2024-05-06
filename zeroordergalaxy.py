@@ -49,6 +49,26 @@ def give_E_SN(n_: int = 1) -> np.ndarray:
     return result
 
 
+def give_P_PSR(n_: int = 1) -> np.ndarray:
+    """Returns an array of length `n` for the PSR current period,
+    following a fit of the non-MSP pulsars of the ATNF catalog.
+
+    Args:
+        n_ (int): Desired length of the final energy array
+
+    Returns:
+        np.ndarray: s, P array
+    """
+    mu = 0.282 # s
+    sigma = 9.28
+
+    result = np.array([give_random_value(lambda x:
+                                         SN.make_lognormal(x, mu, sigma),
+                               1e-2, 1e1) for _ in range(n_)])
+
+    return result # s
+
+
 def give_n_ISM(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the ISM density, following
     Leahy et al. 2020.
@@ -290,6 +310,28 @@ def test_n_ISM() -> None:
     plt.show()
 
 
+def test_P_PSR() -> None:
+    z = np.logspace(-2, 1, 1000)  # s
+    arr = give_P_PSR(1000)
+
+    # Uniform histogram in log x-scale
+    _, bins = np.histogram(arr, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.plot(z, SN.make_lognormal(z, 0.282, 9.28)/inte.quad(
+        lambda x: SN.make_lognormal(x, 0.282, 9.28), 1e-2, 1e1)[0])
+    plt.hist(arr, histtype="step", bins=logbins, density=True)
+    plt.xlabel(r"$P$ [s]")
+    plt.ylabel("PDF")
+    plt.xlim(np.min(z), np.max(z))
+    plt.xscale("log")
+    plt.grid()
+    fig.tight_layout()
+    # plt.savefig(r"Project Summary/Images/f(P_PSR).pdf")
+    plt.show()
+
+
 def test_z() -> None:
     z = np.linspace(-300e-3, 300e-3, 1000)  # kpc
     arr = give_z(1000)
@@ -519,6 +561,7 @@ if __name__ == "__main__":
     # test_pick_arm()
 
     # test_E_SN()
+    test_P_PSR()
     test_n_ISM()
 
     # create_galactic_coordinates(1e4)

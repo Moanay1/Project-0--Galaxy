@@ -9,6 +9,24 @@ import os
 import time
 
 
+def make_lognormal(zz: np.ndarray, mu: float, sigma: float, A) -> np.ndarray:
+    """Returns the log normal function of `zz` for parameters `mu` and 
+    `sigma`.
+
+    Args:
+        zz (np.ndarray): point for which we want the lognormal
+        mu (float): mean
+        sigma (float): variance
+
+    Returns:
+        float: lognormal value
+    """
+    normal_std = np.log10(sigma)
+    normal_mean = np.log(mu)
+    return A/np.sqrt(2*np.pi*normal_std**2)\
+            * np.exp(-(np.log(zz)-normal_mean)**2/(2*normal_std**2))
+
+
 def make_gaussian(x: float, mu: float, sigma: float, A: float) -> float:
     return A*np.exp(-(x-mu)**2/(2*sigma**2))
 
@@ -616,10 +634,10 @@ def plot_flux_pulsars():
 
     plt.scatter(characteristic_age, Edotd2, s=5, label="ATNF")
     plt.scatter(characteristic_age[indices_monogem_geminga],
-                Edotd2[indices_monogem_geminga], marker="*",
+                Edotd2[indices_monogem_geminga], s=100, marker="*",
                 label="ATNF")
     plt.scatter(characteristic_age[index_B1055_52],
-                Edotd2[index_B1055_52], marker="*",
+                Edotd2[index_B1055_52], s=100, marker="*",
                 label="B1055-52")
 
     data = np.genfromtxt("Giacinti_pulsars.txt", delimiter=",", skip_header=1)
@@ -643,10 +661,10 @@ def plot_flux_pulsars():
     plt.grid()
     plt.legend()
     fig.tight_layout()
+    plt.savefig("Project Summary/Images/ATNF_pulsars_properties.pdf")
 
     ####################################################################
-    # plot distance as a function of age for pulsars that have a flux
-    #   higher than Geminga
+    # zoom
 
     geminga = indices_monogem_geminga[1]
     Edotd2_geminga = Edotd2[geminga]
@@ -657,19 +675,87 @@ def plot_flux_pulsars():
 
     fig = plt.figure()
 
-    plt.scatter(characteristic_age[indices_cut], distance[indices_cut])
-    plt.scatter(characteristic_age[indices_monogem_geminga],
-                distance[indices_monogem_geminga], marker="*")
+    plt.scatter(characteristic_age[indices_cut], Edotd2[indices_cut], s=5)
+    plt.scatter(characteristic_age[indices_monogem_geminga[1]],
+                Edotd2[indices_monogem_geminga[1]], s=100, marker="*",
+                label="Geminga")
+    plt.scatter(characteristic_age[indices_monogem_geminga[0]],
+                Edotd2[indices_monogem_geminga[0]], s=100, marker="*",
+                label="Monogem")
     plt.scatter(characteristic_age[index_B1055_52],
-                distance[index_B1055_52], marker="*",
+                Edotd2[index_B1055_52], s=100, marker="*",
+                label="B1055-52")
+    plt.xlabel(r"Characteristic age [kyr]")
+    plt.ylabel(r"$L/d^2$ [erg/s/kpc$^2$]")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/ATNF_pulsars_properties_zoom.pdf")
+
+    ####################################################################
+    # plot distance as a function of age for pulsars that have a flux
+    #   higher than Geminga
+
+    fig = plt.figure()
+
+    plt.scatter(characteristic_age[indices_cut], distance[indices_cut], s=5)
+    plt.scatter(characteristic_age[indices_monogem_geminga[1]],
+                distance[indices_monogem_geminga[1]], s=100, marker="*",
+                label="Geminga")
+    plt.scatter(characteristic_age[indices_monogem_geminga[0]],
+                distance[indices_monogem_geminga[0]], s=100, marker="*",
+                label="Monogem")
+    plt.scatter(characteristic_age[index_B1055_52],
+                distance[index_B1055_52], s=100, marker="*",
                 label="B1055-52")
     plt.xlabel(r"Characteristic age [kyr]")
     plt.ylabel(r"Distance [kpc]")
     plt.xscale("log")
     plt.yscale("log")
     plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/ATNF_pulsars_properties_distance.pdf")
+    plt.show()
+
+
+def plot_period_PSR():
+
+    data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",",
+                         skip_header=4)
+    
+    P0 = data[:, 3]
+    P0 = P0[P0 > 6e-2] # remove the millisecond pulsars
+
+    counts, bins = np.histogram(P0, bins=200)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    logbins2 = [logbins[i] + (logbins[i+1] - logbins[i])/2
+                for i in range(len(logbins)-1)]
+    
+    counts, _ = np.histogram(P0, bins=logbins, density=True)
+
+    pOpt, pCov = opt.curve_fit(make_lognormal, logbins2, counts,
+                               p0=(0.3, 10, 1.75))
+    mu, sigma, A = pOpt
+    print(pOpt, np.sqrt(np.diag(pCov)))
+
+    x = np.logspace(-2, 1, 1000)
+    y = make_lognormal(x, mu, sigma, A)
+
+    fig = plt.figure()
+
+    plt.hist(P0, bins=logbins, density=True, histtype="step", label="Data")
+    plt.plot(x, y, label="Fit")
+    plt.xlabel(r"Period [s]")
+    plt.ylabel(r"Pulsars")
+    plt.xscale("log")
+    plt.grid()
+    plt.legend()
     fig.tight_layout()
     plt.show()
+
 
 
 
@@ -693,6 +779,8 @@ if __name__ == "__main__":
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
-    plot_flux_pulsars()
+    # plot_flux_pulsars()
+
+    plot_period_PSR()
 
     1

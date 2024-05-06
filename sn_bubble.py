@@ -369,6 +369,22 @@ def give_ISM_sound_speed(T: float = 1e2) -> float:
     return np.sqrt(gamma*kB*T/(mu_p*m_p))  # cm/s
 
 
+def plot_ISM_sound_speed():
+
+    T_arr = np.logspace(0, 7) # K
+
+    fig = plt.figure()
+
+    plt.plot(T_arr, give_ISM_sound_speed(T_arr)/1e5)
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Temperature [K]")
+    plt.ylabel("Sound speed [km/s]")
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
 def give_SN_merge_time(
     c_s: float = 1e6,
     E: float = 2.7e50,
@@ -987,7 +1003,9 @@ if __name__ == "__main__":
     # plot_bubble_radius()
     # plot_SN_radius(s=0)
     # plot_SN_radius_comparison_medium()
-    plot_CSM_density_mass()
+    # plot_CSM_density_mass()
+
+    plot_ISM_sound_speed()
 
     # plot_characteristic_time_scales()
 
