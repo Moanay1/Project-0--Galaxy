@@ -614,12 +614,11 @@ def plot_giacinti_pulsars():
     plt.show()
 
 
-def plot_flux_pulsars():
+def plot_flux_pulsars(zoom:bool = True):
 
     data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",", skip_header=4, dtype=str)
 
     name = data[:,1]
-    luminosity = data[:,11] # erg/s
     characteristic_age = np.float64(data[:,10])/1e3 # kyr
     distance = np.float64(data[:,9]) # kpc
     Edotd2 = np.float64(data[:,12]) # erg/s/kpc^2
@@ -630,94 +629,56 @@ def plot_flux_pulsars():
     index_B1055_52 = [i for i in range(len(name)) 
                if name[i] in [" B1055-52"]]
 
-    fig = plt.figure()
+    # Computation of the number of puslars that have similar properties
+    #   to Geminga
 
-    plt.scatter(characteristic_age, Edotd2, s=5, label="ATNF")
-    plt.scatter(characteristic_age[indices_monogem_geminga],
-                Edotd2[indices_monogem_geminga], s=100, marker="*",
-                label="ATNF")
-    plt.scatter(characteristic_age[index_B1055_52],
-                Edotd2[index_B1055_52], s=100, marker="*",
-                label="B1055-52")
+    tolerance = 3
+    Geminga_like_pulsars = np.array([])
+    
+    for i in range(len(name)):
+        if distance[i] < distance[indices_monogem_geminga[1]] * tolerance:
+            if Edotd2[i] > Edotd2[indices_monogem_geminga[1]] / tolerance:
+                Geminga_like_pulsars = np.append(Geminga_like_pulsars, i)
 
-    data = np.genfromtxt("Giacinti_pulsars.txt", delimiter=",", skip_header=1)
-
-    luminosity_giacinti = 10**data[:, 2] # erg/s
-    characteristic_age_giacinti = data[:,3] # kyr
-    distance_giacinti = data[:,4] # kpc
-
-    plt.scatter(characteristic_age_giacinti[2:],
-                luminosity_giacinti[2:]/distance_giacinti[2:]**2,
-                label="Giacinti+2020")
-    plt.scatter(characteristic_age_giacinti[:2],
-                luminosity_giacinti[:2]/distance_giacinti[:2]**2, marker="*",
-                label="Giacinti+2020")
-
-
-    plt.xlabel(r"Characteristic age [kyr]")
-    plt.ylabel(r"$L/d^2$ [erg/s/kpc$^2$]")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid()
-    plt.legend()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/ATNF_pulsars_properties.pdf")
-
-    ####################################################################
-    # zoom
-
-    geminga = indices_monogem_geminga[1]
-    Edotd2_geminga = Edotd2[geminga]
-
-    indices_cut = [i for i in range(len(Edotd2))
-                   if Edotd2[i] > Edotd2_geminga/2]
-
+    size = np.log10(characteristic_age) / np.log10(np.max(characteristic_age))
 
     fig = plt.figure()
 
-    plt.scatter(characteristic_age[indices_cut], Edotd2[indices_cut], s=5)
-    plt.scatter(characteristic_age[indices_monogem_geminga[1]],
+    p = plt.scatter(distance, Edotd2, s=size*25, c=characteristic_age,
+                norm=col.LogNorm(vmin=np.min(characteristic_age),
+                                 vmax=np.max(characteristic_age)),
+                cmap="gist_rainbow")
+    plt.scatter(distance[indices_monogem_geminga[1]],
                 Edotd2[indices_monogem_geminga[1]], s=100, marker="*",
                 label="Geminga")
-    plt.scatter(characteristic_age[indices_monogem_geminga[0]],
+    plt.scatter(distance[indices_monogem_geminga[0]],
                 Edotd2[indices_monogem_geminga[0]], s=100, marker="*",
                 label="Monogem")
-    plt.scatter(characteristic_age[index_B1055_52],
+    plt.scatter(distance[index_B1055_52],
                 Edotd2[index_B1055_52], s=100, marker="*",
                 label="B1055-52")
-    plt.xlabel(r"Characteristic age [kyr]")
-    plt.ylabel(r"$L/d^2$ [erg/s/kpc$^2$]")
+    
+    plt.axvline(x=distance[indices_monogem_geminga[1]]*tolerance, 
+    c="black", linestyle="--")
+    plt.axhline(y=Edotd2[indices_monogem_geminga[1]]/tolerance, 
+    c="black", linestyle="--")
+
+    plt.xlabel(r"Distance [kpc]")
+    plt.ylabel(r"Flux [erg/s/kpc$^2$]")
     plt.xscale("log")
     plt.yscale("log")
+    clb = plt.colorbar(p)
+    clb.set_label(r"Pulsar age [kyr]")
     plt.grid()
-    plt.legend()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/ATNF_pulsars_properties_zoom.pdf")
-
-    ####################################################################
-    # plot distance as a function of age for pulsars that have a flux
-    #   higher than Geminga
-
-    fig = plt.figure()
-
-    plt.scatter(characteristic_age[indices_cut], distance[indices_cut], s=5)
-    plt.scatter(characteristic_age[indices_monogem_geminga[1]],
-                distance[indices_monogem_geminga[1]], s=100, marker="*",
-                label="Geminga")
-    plt.scatter(characteristic_age[indices_monogem_geminga[0]],
-                distance[indices_monogem_geminga[0]], s=100, marker="*",
-                label="Monogem")
-    plt.scatter(characteristic_age[index_B1055_52],
-                distance[index_B1055_52], s=100, marker="*",
-                label="B1055-52")
-    plt.xlabel(r"Characteristic age [kyr]")
-    plt.ylabel(r"Distance [kpc]")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.grid()
-    plt.legend()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/ATNF_pulsars_properties_distance.pdf")
+    plt.legend(fontsize=10)
+    if zoom:
+        plt.xlim(right=distance[indices_monogem_geminga[1]]*tolerance)
+        plt.ylim(bottom=Edotd2[indices_monogem_geminga[1]]/tolerance)
+        fig.tight_layout()
+        plt.savefig("Project Summary/Images/ATNF_pulsars_properties_zoom.pdf")
+    else:
+        fig.tight_layout()
+        plt.savefig("Project Summary/Images/ATNF_pulsars_properties.pdf")
     plt.show()
 
 
@@ -754,6 +715,7 @@ def plot_period_PSR():
     plt.grid()
     plt.legend()
     fig.tight_layout()
+    plt.savefig(r"Project Summary/Images/fit_data_P.pdf")
     plt.show()
 
 
@@ -779,8 +741,8 @@ if __name__ == "__main__":
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
-    # plot_flux_pulsars()
+    plot_flux_pulsars()
 
-    plot_period_PSR()
+    # plot_period_PSR()
 
     1

@@ -223,11 +223,15 @@ def plot_efficiency_distribution():
 
     efficiencies = efficiencies[efficiencies > 0]
 
+    median = np.median(efficiencies)
+
     plt.hist(efficiencies, histtype="step", bins=100, density=True)
+    plt.axvline(x=median, color="red", label=f"Median = {median:.2f} %")
     
     plt.xlabel("Injection efficiency [%]")
     plt.ylabel("Pulsars proportion per bin")
     plt.grid()
+    plt.legend()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/f(efficiencies).pdf")
     plt.show()
