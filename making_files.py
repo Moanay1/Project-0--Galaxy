@@ -616,11 +616,13 @@ def plot_giacinti_pulsars():
 
 def plot_flux_pulsars(zoom:bool = True):
 
-    data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",", skip_header=4, dtype=str)
+    data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",",
+                         skip_header=4, dtype=str)
 
     name = data[:,1]
     characteristic_age = np.float64(data[:,10])/1e3 # kyr
     distance = np.float64(data[:,9]) # kpc
+    luminosity = np.float64(data[:,11]) # erg/s
     Edotd2 = np.float64(data[:,12]) # erg/s/kpc^2
 
     indices_monogem_geminga = [i for i in range(len(name)) 
@@ -629,18 +631,27 @@ def plot_flux_pulsars(zoom:bool = True):
     index_B1055_52 = [i for i in range(len(name)) 
                if name[i] in [" B1055-52"]]
 
-    # Computation of the number of puslars that have similar properties
+    # Computation of the number of pulsars that have similar properties
     #   to Geminga
+    ####################################################################
+    # FLUX (Luminosity over distance squared)
+    ####################################################################
 
     tolerance = 3
-    Geminga_like_pulsars = np.array([])
-    
+    Geminga_like_pulsars = []
+
     for i in range(len(name)):
         if distance[i] < distance[indices_monogem_geminga[1]] * tolerance:
             if Edotd2[i] > Edotd2[indices_monogem_geminga[1]] / tolerance:
-                Geminga_like_pulsars = np.append(Geminga_like_pulsars, i)
+                Geminga_like_pulsars.append(i)
 
     size = np.log10(characteristic_age) / np.log10(np.max(characteristic_age))
+
+    print(np.array(Geminga_like_pulsars)+1)
+
+    print(characteristic_age[Geminga_like_pulsars])
+    print(distance[Geminga_like_pulsars])
+    print(Edotd2[Geminga_like_pulsars])
 
     fig = plt.figure()
 
@@ -658,13 +669,13 @@ def plot_flux_pulsars(zoom:bool = True):
                 Edotd2[index_B1055_52], s=100, marker="*",
                 label="B1055-52")
     
-    plt.axvline(x=distance[indices_monogem_geminga[1]]*tolerance, 
-    c="black", linestyle="--")
-    plt.axhline(y=Edotd2[indices_monogem_geminga[1]]/tolerance, 
-    c="black", linestyle="--")
+    plt.axvline(x=distance[indices_monogem_geminga[1]]*tolerance,
+               color="black", linestyle="--")
+    plt.axhline(y=Edotd2[indices_monogem_geminga[1]]/tolerance,
+               color="black", linestyle="--")
 
     plt.xlabel(r"Distance [kpc]")
-    plt.ylabel(r"Flux [erg/s/kpc$^2$]")
+    plt.ylabel(r"$\dot{E}/d^2$ [erg/s/kpc$^2$]")
     plt.xscale("log")
     plt.yscale("log")
     clb = plt.colorbar(p)
@@ -679,6 +690,86 @@ def plot_flux_pulsars(zoom:bool = True):
     else:
         fig.tight_layout()
         plt.savefig("Project Summary/Images/ATNF_pulsars_properties.pdf")
+    plt.show()
+
+
+def plot_luminosity_over_distance_pulsars(zoom:bool = True):
+
+    data = np.genfromtxt("flux(time)_catalog.txt", delimiter=",",
+                         skip_header=4, dtype=str)
+
+    name = data[:,1]
+    characteristic_age = np.float64(data[:,10])/1e3 # kyr
+    distance = np.float64(data[:,9]) # kpc
+    luminosity = np.float64(data[:,11]) # erg/s
+    Edotd2 = np.float64(data[:,12]) # erg/s/kpc^2
+    false_flux = luminosity/distance # erg/s/kpc
+
+    indices_monogem_geminga = [i for i in range(len(name)) 
+               if name[i] in [" B0656+14", " J0633+1746"]]
+    
+    index_B1055_52 = [i for i in range(len(name)) 
+               if name[i] in [" B1055-52"]]
+
+    # Computation of the number of pulsars that have similar properties
+    #   to Geminga
+    ####################################################################
+    # FLUX (Luminosity over distance squared)
+    ####################################################################
+
+    tolerance = 3
+    Geminga_like_pulsars = []
+
+    for i in range(len(name)):
+        if distance[i] < distance[indices_monogem_geminga[1]] * tolerance:
+            if false_flux[i] > false_flux[indices_monogem_geminga[1]] / tolerance:
+                Geminga_like_pulsars.append(i)
+
+    size = np.log10(characteristic_age) / np.log10(np.max(characteristic_age))
+
+    print(np.array(Geminga_like_pulsars)+1)
+
+    print(characteristic_age[Geminga_like_pulsars])
+    print(distance[Geminga_like_pulsars])
+    print(false_flux[Geminga_like_pulsars])
+
+    fig = plt.figure()
+
+    p = plt.scatter(distance, false_flux, s=size*25, c=characteristic_age,
+                norm=col.LogNorm(vmin=np.min(characteristic_age),
+                                 vmax=np.max(characteristic_age)),
+                cmap="gist_rainbow")
+    plt.scatter(distance[indices_monogem_geminga[1]],
+                false_flux[indices_monogem_geminga[1]], s=100, marker="*",
+                label="Geminga")
+    plt.scatter(distance[indices_monogem_geminga[0]],
+                false_flux[indices_monogem_geminga[0]], s=100, marker="*",
+                label="Monogem")
+    plt.scatter(distance[index_B1055_52],
+                false_flux[index_B1055_52], s=100, marker="*",
+                label="B1055-52")
+    
+    plt.axvline(x=distance[indices_monogem_geminga[1]]*tolerance,
+               color="black", linestyle="--")
+    plt.axhline(y=false_flux[indices_monogem_geminga[1]]/tolerance,
+               color="black", linestyle="--")
+
+    plt.xlabel(r"Distance [kpc]")
+    plt.ylabel(r"$\dot{E}/d$ [erg/s/kpc]")
+    plt.xscale("log")
+    plt.yscale("log")
+    clb = plt.colorbar(p)
+    clb.set_label(r"Pulsar age [kyr]")
+    plt.grid()
+    plt.legend(fontsize=10)
+    if zoom:
+        plt.xlim(right=distance[indices_monogem_geminga[1]]*tolerance)
+        plt.ylim(bottom=false_flux[indices_monogem_geminga[1]]/tolerance)
+        fig.tight_layout()
+        plt.savefig("Project Summary/Images/ATNF_pulsars_properties_zoom_luminosity_over_distance.pdf")
+    else:
+        fig.tight_layout()
+        plt.savefig("Project Summary/Images/ATNF_pulsars_properties_luminosity_over_distance.pdf")
     plt.show()
 
 
@@ -741,7 +832,8 @@ if __name__ == "__main__":
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
-    plot_flux_pulsars()
+    # plot_flux_pulsars()
+    plot_luminosity_over_distance_pulsars()
 
     # plot_period_PSR()
 
