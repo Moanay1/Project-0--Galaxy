@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tick
 import scipy.integrate as inte
+import scipy.stats as stats
 import random
 import sn_bubble as SN
 
@@ -68,6 +69,70 @@ def give_P_PSR(n_: int = 1) -> np.ndarray:
 
     return result # s
 
+
+def give_P_PSR_Faucher_Giguere(n_: int = 1) -> np.ndarray:
+    """Returns an array of length `n` for the PSR current period,
+    following the work of Faucher-Giguère et al. 2006.
+
+    Args:
+        n_ (int): Desired length of the final energy array
+
+    Returns:
+        np.ndarray: s, P array
+    """
+    mu = 0.300 # s
+    sigma = 0.150 # s
+
+    a = (0.010 - mu)/sigma
+    b = (100 - mu)/sigma
+    
+    result = stats.truncnorm.rvs(a, b, loc=mu, scale=sigma, size=n_)
+
+    return result # s
+
+
+def give_P_PSR_Watters_Romani(n_: int = 1) -> np.ndarray:
+    """Returns an array of length `n` for the PSR current period,
+    following the work of Watters and Romani 2011.
+
+    Args:
+        n_ (int): Desired length of the final energy array
+
+    Returns:
+        np.ndarray: s, P array
+    """
+    mu = 0.050 # s
+    sigma = 0.025 # s
+
+    a = (0.010 - mu)/sigma
+    b = (100 - mu)/sigma
+    
+    result = stats.truncnorm.rvs(a, b, loc=mu, scale=sigma, size=n_)
+
+    return result # s
+
+
+def test_periods():
+
+    functions = [give_P_PSR_Faucher_Giguere,
+                 give_P_PSR_Watters_Romani]
+    
+    names = ["Faucher-Giguère+2006", "Watters & Romani 2011"]
+
+    fig = plt.figure()
+
+    for i in range(len(functions)):
+
+        P0s = functions[i](10000)
+        plt.hist(P0s, histtype="step", bins=100, density=True,
+                 label=names[i])
+
+    plt.xlabel(r"$P_0$ [s]")
+    plt.ylabel("PDF")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.show()
 
 def give_n_ISM(n_: int = 1) -> np.ndarray:
     """Returns an array of length `n` for the ISM density, following
@@ -561,8 +626,9 @@ if __name__ == "__main__":
     # test_pick_arm()
 
     # test_E_SN()
-    test_P_PSR()
-    test_n_ISM()
+    # test_P_PSR()
+    # test_n_ISM()
+    test_periods()
 
     # create_galactic_coordinates(1e4)
 

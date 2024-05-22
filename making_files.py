@@ -832,7 +832,7 @@ if __name__ == "__main__":
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
-    # plot_flux_pulsars()
+    plot_flux_pulsars()
     plot_luminosity_over_distance_pulsars()
 
     # plot_period_PSR()

@@ -211,23 +211,27 @@ def plot_efficiency_distribution():
 
     bowshock_times = bowshock_time(E_SNs, n_ISMs, v_ks)
 
-    Ps = galaxy.give_P_PSR(number_pulsars)
-    P0s = initial_period_computed(P=Ps, t=bowshock_times)
-
     fig = plt.figure()
 
-    efficiencies = np.array([available_energy(t_init=bowshock_times[i],
-                                              P0=P0s[i]) /
-                             available_energy(P0=P0s[i])
-                             for i in range(number_pulsars)])*100
-
-    efficiencies = efficiencies[efficiencies > 0]
-
-    median = np.median(efficiencies)
-
-    plt.hist(efficiencies, histtype="step", bins=100, density=True)
-    plt.axvline(x=median, color="red", label=f"Median = {median:.2f} %")
+    functions = [galaxy.give_P_PSR_Faucher_Giguere,
+                 galaxy.give_P_PSR_Watters_Romani]
     
+    names = ["Faucher-Giguère+2006", "Watters & Romani 2011"]
+
+    for i in range(len(functions)):
+
+        P0s = functions[i](number_pulsars)
+
+        efficiencies = np.array([available_energy(t_init=bowshock_times[i],
+                                                P0=P0s[i]) /
+                                available_energy(P0=P0s[i])
+                                for i in range(number_pulsars)])*100
+
+        efficiencies = efficiencies[efficiencies > 0]
+
+        plt.hist(efficiencies, histtype="step", bins=100, density=True,
+                 label=names[i])
+
     plt.xlabel("Injection efficiency [%]")
     plt.ylabel("Pulsars proportion per bin")
     plt.grid()
