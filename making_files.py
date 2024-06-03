@@ -253,6 +253,8 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
 
     colors = ["blue", "orange"]
     variable = [True, False]
+    labels = [r"Variance of $E_\mathrm{SN}$, $n_\mathrm{ISM}$", "No variance"]
+    labels2 = ["Variance", "No variance"]
 
     fig = plt.figure()
 
@@ -296,10 +298,10 @@ def give_inside_proportion_with_time_varying_parameters() -> None:
         print(np.mean(time_pulsars))
 
         plt.plot(t_arr/1e3, mu_arr, linewidth=0.5, color=colors[i],
-                 label=f"Parameters changing {variable[i]}")
+                 label=labels[i])
         plt.fill_between(t_arr/1e3, xL_arr, xU_arr,
                          alpha=0.2, color=colors[i],
-                         label=r"2$\sigma$ "f"{variable[i]}")
+                         label=labels2[i])
 
     plt.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
@@ -503,6 +505,8 @@ def plot_bow_shock_time_distribution():
 
     colors = ["blue", "orange"]
     variable = [True, False]
+    labels = [r"Variance of $E_\mathrm{SN}$, $n_\mathrm{ISM}$", "No variance"]
+    labels2 = ["Variance", "No variance"]
 
     for i in range(len(variable)):
 
@@ -513,10 +517,10 @@ def plot_bow_shock_time_distribution():
         xU = data[:,3]
 
         ax1.plot(time_pulsars/1e3, percentage, linewidth=0.5, color=colors[i],
-                 label=f"Parameters changing {variable[i]}")
+                 label=labels[i])
         ax1.fill_between(t_arr/1e3, xL, xU,
                          alpha=0.2, color=colors[i],
-                         label=r"2$\sigma$ "f"{variable[i]}")
+                         label=labels2[i])
         
     ax1.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
@@ -529,9 +533,9 @@ def plot_bow_shock_time_distribution():
     ax1.legend(fontsize = 9)
     ax1.grid()
 
-    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 100000)
 
-    _, bins = np.histogram(t_bs_arr, bins=20)
+    _, bins = np.histogram(t_bs_arr, bins=100)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     ax2.hist(t_bs_arr, bins=logbins, histtype="step")
@@ -828,12 +832,12 @@ if __name__ == "__main__":
     # plot_age_SNR()
     # plot_morphology_PSR()
 
-    # plot_bow_shock_time_distribution()
+    plot_bow_shock_time_distribution()
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
-    plot_flux_pulsars()
-    plot_luminosity_over_distance_pulsars()
+    # plot_flux_pulsars()
+    # plot_luminosity_over_distance_pulsars()
 
     # plot_period_PSR()
 

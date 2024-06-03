@@ -6,6 +6,7 @@ import scipy.optimize as opt
 from scipy.stats import lognorm
 import random
 import shock_speed as shock
+from tqdm import tqdm
 
 np.set_printoptions(precision=3)
 plt.rcParams.update({'font.size': 17})
@@ -911,8 +912,8 @@ def plot_characteristic_time_scales():
 
     M = np.array([16])
 
-    r_w = give_wind_radius(M)[0]*pc # cm
-    r_b = give_bubble_radius(M)*pc # cm
+    r_w = 1.5*pc #give_wind_radius(M)[0]*pc # cm
+    r_b = 25*pc #give_bubble_radius(M)*pc # cm
 
     t_w = shock.give_time_radius_integration(r_w, r_w, r_b)/yr
     t_b = shock.give_time_radius_integration(r_b, r_w, r_b)/yr
@@ -920,11 +921,13 @@ def plot_characteristic_time_scales():
     t_PDS2 = give_SN_PDS_time2()
     t_merger = give_SN_merge_time(give_ISM_sound_speed(100))
 
-    r_arr = np.logspace(16, 21, 1000) # cm
+    r_arr = np.logspace(np.log10(0.01*pc), np.log10(1000*pc), 10000) # cm
     t_arr = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
-                      for r_ in r_arr])/yr
+                      for r_ in tqdm(r_arr)])/yr
     t_arr2 = np.array([shock.give_time_radius_integration_constant_density(r_)
-                     for r_ in r_arr])/yr
+                     for r_ in tqdm(r_arr)])/yr
+    t_arr3 = np.array([shock.give_time_radius_integration_constant_density_Leahy(r_)
+                     for r_ in tqdm(r_arr)])/yr
     r_arr = r_arr/pc
 
     pOpt, pCov = opt.curve_fit(lambda x, a, b: b*x**a, t_arr[50:], r_arr[50:])
@@ -933,9 +936,10 @@ def plot_characteristic_time_scales():
     fig = plt.figure()
     plt.plot(t_arr/1e3, r_arr, linewidth="2", label="$R(t)$ in CSM")
     plt.plot(t_arr2/1e3, r_arr, linewidth="2", label="$R(t)$ in ISM")
+    plt.plot(t_arr3/1e3, r_arr, linewidth="2", label="$R(t)$ in ISM (Leahy params)")
     # plt.plot(t_arr[50:]/1e3, B*t_arr[50:]**A, label=f"Fit with A={A:.2f}, B={B:.2f}")
-    plt.axvline(x=t_w/1e3, linestyle = ":", color="black", label=r"$t_\mathrm{w}$")
-    plt.axvline(x=t_b/1e3, linestyle = "-.", color="black", label=r"$t_\mathrm{b}$")
+    plt.axhline(y=r_w/pc, linestyle = ":", color="black", label=r"$r_\mathrm{w}$")
+    plt.axhline(y=r_b/pc, linestyle = "-.", color="black", label=r"$r_\mathrm{b}$")
     plt.axvline(x=t_PDS/1e3, linestyle = "--", color="purple", label=r"$t_\mathrm{PDS}$ Cioffi+1988")
     plt.axvline(x=t_PDS2/1e3, linestyle = "--", color="pink", label=r"$t_\mathrm{PDS}$ Vink 2012")
     plt.axvline(x=t_merger/1e3, linestyle = "--", color="orange", label=r"$t_\mathrm{merger}$")
@@ -1005,9 +1009,9 @@ if __name__ == "__main__":
     # plot_SN_radius_comparison_medium()
     # plot_CSM_density_mass()
 
-    plot_ISM_sound_speed()
+    # plot_ISM_sound_speed()
 
-    # plot_characteristic_time_scales()
+    plot_characteristic_time_scales()
 
     # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()

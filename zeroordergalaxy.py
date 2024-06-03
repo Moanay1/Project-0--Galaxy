@@ -5,6 +5,7 @@ import scipy.integrate as inte
 import scipy.stats as stats
 import random
 import sn_bubble as SN
+from tqdm import tqdm
 
 plt.rcParams.update({'font.size': 17})
 plt.rcParams["font.family"] = "serif"
@@ -590,11 +591,11 @@ def give_bow_shock_time(
     Returns:
         np.ndarray: bow shock times for each pulsar.
     """
-    number_t_points = 100
+    number_t_points = 1000
     t_arr = np.logspace(3, 7, number_t_points)
     t_bs_arr = np.array([])
 
-    for _ in range(n):
+    for _ in tqdm(range(n)):
         E_SN = give_E_SN()
         n_ISM = give_n_ISM()
         vk = give_kick_velocity()*1e5/(3e18)*(np.pi*1e7)  # conversion from km/s to pc/yr
@@ -602,6 +603,8 @@ def give_bow_shock_time(
         SNR_radius = 1000000 #pc
         i = 0
         
+        # For each pulsar, we look at the SN radius at different time spaces
+        #  instead of integrating
         while SNR_radius >= pulsar_distance[i] and i < number_t_points-1:
             SNR_radius = SN.give_SN_radius(t=t_arr[i], E=E_SN, n=n_ISM)
             i += 1
