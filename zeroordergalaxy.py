@@ -333,7 +333,7 @@ def test_ST_radius() -> None:
 
 def test_E_SN() -> None:
     z = np.logspace(49, 52, 1000)  # erg
-    arr = give_E_SN(10000)
+    arr = give_E_SN(100000)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
@@ -342,13 +342,14 @@ def test_E_SN() -> None:
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 2.7e50, 3.5)/inte.quad(
     lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e49, 1e52)[0])
-
+    plt.axvline(x=1e51, color="black", linestyle="--", label="Usual value")
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     plt.grid()
+    plt.legend(fontsize=15)
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
     plt.show()
@@ -356,7 +357,7 @@ def test_E_SN() -> None:
 
 def test_n_ISM() -> None:
     z = np.logspace(-3, 1, 1000)  # cm-3
-    arr = give_n_ISM(1000)
+    arr = give_n_ISM(100000)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
@@ -365,14 +366,16 @@ def test_n_ISM() -> None:
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 0.069, 5.1)/inte.quad(
         lambda x: SN.make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
+    plt.axvline(x=1, color="black", linestyle="--", label="Usual value")
     plt.hist(arr, histtype="step", bins=logbins, density=True)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")
     plt.xlim(np.min(z), np.max(z))
     plt.xscale("log")
     plt.grid()
+    plt.legend(fontsize=15)
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
+    plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
     plt.show()
 
 
@@ -434,18 +437,18 @@ def test_initial_period() -> None:
 
 def test_kick_velocity() -> None:
     arr = []
-    for _ in range(10000):
+    for _ in tqdm(range(100000)):
         arr.append(give_kick_velocity())
 
     fig = plt.figure()
-    plt.hist(arr, histtype="step", density=True, bins=50)
+    plt.hist(arr, histtype="step", density=True, bins=500)
     plt.xlabel(r"$v_\mathrm{k}$ [km$\cdot$s$^{-1}$]")
     plt.ylabel("PDF")
     plt.xlim(np.min(arr), np.max(arr))
     plt.grid()
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/f(vk).pdf")
-    # plt.show()
+    plt.show()
 
 
 def test_pick_arm() -> None:
@@ -625,13 +628,13 @@ if __name__ == "__main__":
     # test_ST_radius()
     # test_density_profile()
     # test_initial_period()
-    # test_kick_velocity()
+    test_kick_velocity()
     # test_pick_arm()
 
     # test_E_SN()
     # test_P_PSR()
     # test_n_ISM()
-    test_periods()
+    # test_periods()
 
     # create_galactic_coordinates(1e4)
 

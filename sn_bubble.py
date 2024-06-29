@@ -327,7 +327,7 @@ def give_SN_PDS_radius(
     E: float = 2.7e50,
     n: float = 0.069,
     chi: float = 1,
-    s:int =0
+    s:int = 0
 ) -> np.ndarray:
     """Formula and parameters from Cioffi et al. 1988"""
     t_PDS = give_SN_PDS_time(E, n, chi)  # yr
@@ -364,7 +364,7 @@ def give_SN_ST_radius(
     return r/pc  # pc
 
 
-def give_ISM_sound_speed(T: float = 1e2) -> float:
+def give_ISM_sound_speed(T: float = 8000) -> float:
     """Temperature of the ISM may vary depending on the region
     (dust, cloud, gas, etc)"""
     return np.sqrt(gamma*kB*T/(mu_p*m_p))  # cm/s
@@ -432,7 +432,7 @@ def give_SN_radius(
     E: float = 2.7e50,
     n: float = 0.069,
     chi: float = 1,
-    T: float = 100,
+    T: float = 8000,
     s:int = 0
 ) -> float:
     """Decides the phase of the SNR and gives the appropriate radius
@@ -447,7 +447,7 @@ def give_SN_radius(
         r = give_SN_ST_radius(t, E, n, s)
     elif t < t_MCS:
         r = give_SN_PDS_radius(t, E, n, chi, s)
-    elif t < t_max:
+    else:
         r = give_SN_MCS_radius(t, E, n, chi)
     return r
 
@@ -731,7 +731,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     """From Cioffi et al. 1988"""
 
     # Preparing the 2D
-    n_arr = np.logspace(np.log10(6e-3), np.log10(7e-1))
+    n_arr = np.logspace(np.log10(6e-3), np.log10(2))
     E_arr = np.logspace(np.log10(4e49), np.log10(2e51))
 
     nn, EE = np.meshgrid(n_arr, E_arr)
@@ -767,6 +767,7 @@ def plot_SN_radius_varying_parameters(t:float = 1e3 # yr
     
     plt.scatter(0.069, 2.7e50, c="blue")
     plt.scatter(0.034, 8e50, c="red")
+    plt.scatter(1, 1e51, c="black")
     plt.text(0.0225, 8.5e50, s="Monogem", fontsize=10)
     
     
@@ -919,7 +920,7 @@ def plot_characteristic_time_scales():
     t_b = shock.give_time_radius_integration(r_b, r_w, r_b)/yr
     t_PDS = give_SN_PDS_time()
     t_PDS2 = give_SN_PDS_time2()
-    t_merger = give_SN_merge_time(give_ISM_sound_speed(100))
+    t_merger = give_SN_merge_time(give_ISM_sound_speed(80000))
 
     r_arr = np.logspace(np.log10(0.01*pc), np.log10(1000*pc), 10000) # cm
     t_arr = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
@@ -930,14 +931,10 @@ def plot_characteristic_time_scales():
                      for r_ in tqdm(r_arr)])/yr
     r_arr = r_arr/pc
 
-    pOpt, pCov = opt.curve_fit(lambda x, a, b: b*x**a, t_arr[50:], r_arr[50:])
-    A, B = pOpt
-
     fig = plt.figure()
-    plt.plot(t_arr/1e3, r_arr, linewidth="2", label="$R(t)$ in CSM")
+    plt.plot(t_arr/1e3, r_arr, linewidth="3", label="$R(t)$ in CSM")
     plt.plot(t_arr2/1e3, r_arr, linewidth="2", label="$R(t)$ in ISM")
     plt.plot(t_arr3/1e3, r_arr, linewidth="2", label="$R(t)$ in ISM (Leahy params)")
-    # plt.plot(t_arr[50:]/1e3, B*t_arr[50:]**A, label=f"Fit with A={A:.2f}, B={B:.2f}")
     plt.axhline(y=r_w/pc, linestyle = ":", color="black", label=r"$r_\mathrm{w}$")
     plt.axhline(y=r_b/pc, linestyle = "-.", color="black", label=r"$r_\mathrm{b}$")
     plt.axvline(x=t_PDS/1e3, linestyle = "--", color="purple", label=r"$t_\mathrm{PDS}$ Cioffi+1988")
@@ -1011,7 +1008,7 @@ if __name__ == "__main__":
 
     # plot_ISM_sound_speed()
 
-    plot_characteristic_time_scales()
+    #plot_characteristic_time_scales()
 
     # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()

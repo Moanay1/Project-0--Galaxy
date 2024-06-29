@@ -1,0 +1,518 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+import shock_speed as shock
+import sn_bubble as bubble
+import scipy.integrate as inte
+import accurate_csm as csm
+import cgs
+import time
+
+def convergence_radius():
+
+    n_array = 2**np.arange(1, 20, 1)
+
+    r_w = 1.5*cgs.pc
+    r_b = 25*cgs.pc
+
+    fig = plt.figure()
+
+    r_arr = np.geomspace(0.01*cgs.pc, 1000*cgs.pc, num=n_array[-1]) # cm
+    t_arr_reference = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in tqdm(r_arr)])/cgs.year
+    integral_t_arr_reference = inte.simpson(t_arr_reference, r_arr)
+    
+    
+    difference = []
+
+    for n_ in tqdm(n_array):
+        r_arr = np.geomspace(0.01*cgs.pc, 1000*cgs.pc, n_) # cm
+        t_arr = np.array([shock.give_time_radius_integration(r_, r_w, r_b)
+                      for r_ in r_arr])/cgs.year
+        integral_t_arr = inte.simpson(t_arr, r_arr)
+        diff = (integral_t_arr - integral_t_arr_reference)/integral_t_arr_reference
+        difference.append(diff)
+
+    difference = np.abs(difference)
+
+    print(n_array)
+    print(r"%%%%%%%%%%%%%%%%%%%")
+    print(difference)
+
+    plt.plot(n_array, difference)
+
+    plt.xlabel("Number of points in r_arr")
+    plt.ylabel(r"$\frac{I - I_\mathrm{expected}}{I_\mathrm{expected}}$")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.grid()
+    fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Convergence_radius_points.pdf")
+    plt.show()
+
+
+
+def cooling_time(temperature:float = 8000, #K
+                 number_density:float = 1 #cm-3
+                 ):
+    cooling_function = 1e-22 * (temperature/1e6)**(-0.7) # erg/cm3/s # MacLow & McCray 1988
+    return 3/2 * cgs.k_boltzmann * temperature / (number_density * cooling_function)
+
+
+def density_profile(r:np.ndarray,
+                    r_w:float = 1.5*cgs.pc,
+                    r_b:float = 25*cgs.pc,
+                    number_density:float = 1/cgs.cm3,
+                    n_bubble:float = 0.01/cgs.cm3,
+                    r_shell:float = 0.3*cgs.pc
+                    ):
+    
+    density_arr = []
+
+    for r_ in r:
+        if r_ < r_w:
+            n = 1e-5*cgs.sun_mass/cgs.year/(4*np.pi * 1e6) \
+                /cgs.proton_mass * (r_)**(-2) # /cm3
+        elif r_ < r_b:
+            # n = n_bubble # Simple solution
+            n = n_bubble*((1 - r_/r_b) / (1 - r_w/r_b))**(-2/5) # From Weaver+1977
+        elif r_ < r_b+r_shell:
+            n = 17
+        else:
+            n = number_density
+        density_arr.append(n)
+    
+    return np.array(density_arr)
+
+
+def temperature_profile(r:np.ndarray,
+                        r_w:float = 1.5*cgs.pc,
+                        r_b:float = 25*cgs.pc,
+                        r_shell:float = 0.3*cgs.pc
+                        ):
+    
+    temperature_arr = []
+
+    for r_ in r:
+        if r_ < r_w:
+            T = 1e4*cgs.K
+        elif r_ < r_b:
+            # T = 1e6*cgs.K # From Recchia+2022
+            T = 1e6*cgs.K*((1 - r_/r_b) / (1 - r_w/r_b))**(2/5) # From Weaver+1977
+        elif r_ < r_b + r_shell:
+            T = 80*cgs.K
+        else:
+            T = 8000*cgs.K
+        temperature_arr.append(T)
+    
+    return np.array(temperature_arr)
+
+
+def test_density_temperature_profile():
+
+    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 1000)
+
+    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+                      for r_ in r_arr])
+
+    fig, (ax1, ax3) = plt.subplots(2, 1, sharex=True)
+
+    color = 'tab:red'
+    ax1.set_ylabel(r"Number density [cm$^{-3}$]", color=color)
+    ax1.plot(r_arr/cgs.pc, density_profile(r_arr), color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+
+    ax2 = ax1.twinx()  # instantiate a second Axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel(r"Temperature [K]", color=color)  # we already handled the x-label with ax1
+    ax2.plot(r_arr/cgs.pc, temperature_profile(r_arr), color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.set_yscale("log")
+
+    ax1.axvline(x=1.5, linestyle="--", alpha=0.5, linewidth=1,
+                color="black", label="Wind radius")
+    ax1.axvline(x=25, linestyle="-.", alpha=0.5, linewidth=1,
+                color="black", label="Bubble radius")
+    ax1.grid()
+    ax1.legend(fontsize=10)
+
+
+    ax3.plot(r_arr/cgs.pc, cooling_time(temperature_profile(r_arr), density_profile(r_arr))/cgs.kyr, label="Cooling time")
+    ax3.plot(r_arr/cgs.pc, time_array/cgs.kyr, label=r"$t(R)$")
+    ax3.set_xlabel("Radius [pc]")
+    ax3.set_ylabel("Time [kyr]")
+    ax3.set_xscale("log")
+    ax3.set_yscale("log")
+    ax3.legend()
+    ax3.grid()
+    fig.tight_layout()
+    plt.show()
+
+
+def sound_speed(temperature: float = 8000) -> float:
+    """Temperature of the ISM may vary depending on the region
+    (dust, cloud, gas, etc)"""
+    mu_p = 1.4 # molecular fraction in the ISM
+    gamma = 5/3  # adiabatic coefficient for monoatomic gas
+    return np.sqrt(gamma*cgs.k_boltzmann*temperature/(mu_p*cgs.proton_mass))  # cm/s
+
+
+def test_sound_speed():
+
+    system = PSR_SNR_System(n=10000, m_ej=5*cgs.sun_mass)
+    system.give_time()
+    system.radiative_phase()
+
+    r_arr = system.radius_arr
+
+    fig = plt.figure()
+
+    plt.plot(r_arr/cgs.pc, sound_speed(temperature=temperature_profile(r_arr))/cgs.km, label="Sound speed")
+    plt.plot(r_arr/cgs.pc, system.speed_arr/cgs.km, label="Shock speed")
+    plt.axvline(x=1.5, linestyle="--", alpha=0.5, linewidth=1,
+                color="black", label="Wind radius")
+    plt.axvline(x=25, linestyle="-.", alpha=0.5, linewidth=1,
+                color="black", label="Bubble radius")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Radius [pc]")
+    plt.ylabel("Sound speed [km/s]")
+    plt.legend(fontsize=12)
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
+class PSR_SNR_System:
+    def __init__(self, E_SN = 1e51*cgs.erg, n_ISM = 1, m_ej = 5*cgs.sun_mass, 
+                 mass_loss = 1e-5*cgs.sun_mass/cgs.year, 
+                 wind_speed = 3e6*cgs.cm/cgs.second, n = 100,
+                 weaver:bool = False, model_shell:bool = True) -> None:
+        self.supernova_energy = E_SN
+        self.ism_density = n_ISM*cgs.proton_mass
+        self.bubble_density = 0.01*cgs.proton_mass
+        self.wind_radius = 1.5*cgs.pc
+        self.bubble_radius = 25*cgs.pc
+        self.shell_width = 1*cgs.pc
+        self.shell_radius = self.bubble_radius + self.shell_width
+        self.ejected_mass = m_ej
+        self.stellar_mass_loss = mass_loss
+        self.wind_speed = wind_speed
+
+        self.integration_points = n
+        self.radius_arr_ref = np.geomspace(0.1*cgs.pc, 500*cgs.pc, num=n)
+        self.radius_arr = self.radius_arr_ref
+
+        self.weaver = weaver
+        self.model_shell = model_shell
+
+    def associate_values(self):
+
+        self.temperature = temperature_profile(self.radius_arr,
+                                               self.wind_radius,
+                                               self.bubble_radius)
+        self.density = density_profile(self.radius_arr,
+                                       self.wind_radius,
+                                       self.bubble_radius,
+                                       self.ism_density,
+                                       self.bubble_density)
+        self.coolingtime = cooling_time(self.temperature,
+                                        self.density)
+        self.soundspeed = sound_speed(self.temperature)
+
+    def give_time(self, plot=False):
+
+        self.radius_arr = self.radius_arr_ref
+        integration_constant = shock.give_time_radius_integration(self.radius_arr[0],
+                                                         self.wind_radius,
+                                                         self.bubble_radius)
+
+        if self.model_shell:
+            self.speed_arr = csm.speed_profile(self.radius_arr,
+                                            m_ej=self.ejected_mass,
+                                            mass_loss=self.stellar_mass_loss,
+                                            wind_speed=self.wind_speed,
+                                            rw=self.wind_radius,
+                                            rb=self.bubble_radius,
+                                            rho_bubble=self.bubble_density,
+                                            rho_shell=17*cgs.proton_mass,
+                                            rho_ISM=self.ism_density,
+                                            r_shell=self.shell_width,
+                                            E_SN=self.supernova_energy,
+                                            weaver=self.weaver)
+        elif not self.model_shell:
+            self.speed_arr = shock.give_speed_radius_analytical(self.radius_arr,
+                                                                self.wind_radius,
+                                                                self.bubble_radius,
+                                                                self.supernova_energy,
+                                                                self.ejected_mass)
+
+        self.time_arr = np.array([inte.simpson(1/self.speed_arr[:i], self.radius_arr[:i])
+                                  for i in range(2, self.integration_points)]) + integration_constant
+        
+        self.radius_arr = self.radius_arr[1:-1]
+        self.speed_arr = self.speed_arr[1:-1]
+
+        if plot:
+            fig = plt.figure()
+
+            plt.plot(self.time_arr/cgs.kyr, self.radius_arr/cgs.pc)
+            plt.xscale("log")
+            plt.yscale("log")
+            plt.xlabel("Time [kyr]")
+            plt.ylabel("Radius [pc]")
+            plt.grid()
+            fig.tight_layout()
+            plt.show()
+
+
+    def merger(self, alpha = 2, plot:bool = False):
+
+        if plot:
+            fig = plt.figure()
+
+            plt.plot(self.time_arr/cgs.kyr, self.speed_arr)
+            plt.plot(self.time_arr/cgs.kyr, self.soundspeed*alpha)
+            plt.xscale("log")
+            plt.yscale("log")
+            plt.xlabel("Time [kyr]")
+            plt.ylabel("Radius [pc]")
+            plt.grid()
+            fig.tight_layout()
+            plt.show()
+
+        # Merger with the medium because the shock becomes subsonic
+        for i in range(len(self.radius_arr)):
+            if self.soundspeed[i]*alpha > self.speed_arr[i]:
+                break
+
+        self.merger_time = self.time_arr[i]
+        self.merger_radius = self.radius_arr[i]
+        self.radius_arr[i:] = 0
+
+
+    def radiative_phase(self):
+
+        i = 0
+        # while self.coolingtime[i] > self.time_arr[i] or self.radius_arr[i] < self.wind_radius*2:
+        #     i += 1
+
+        # Condition of going outside the shell
+        while self.radius_arr[i] < self.shell_radius:
+            i += 1
+
+        shell_index = i
+
+        # Condition of having the same powerlaw as the radiative radius
+        # after the shell
+        powerlaw_index = np.array([(np.log10(self.radius_arr[j+1]) - np.log10(self.radius_arr[j]))/\
+                         (np.log10(self.time_arr[j+1]) - np.log10(self.time_arr[j])) for j in range(shell_index, len(self.radius_arr)-1)])
+
+        i = 0
+
+        while powerlaw_index[i] < 0.3:
+            i+=1
+
+        i += shell_index
+
+        self.first_radiative_radius = self.radius_arr[i]
+        self.first_radiative_time = self.time_arr[i]
+        self.first_radiative_speed = self.speed_arr[i]
+
+        for i in range(i, len(self.radius_arr)):
+            self.radius_arr[i] = self.first_radiative_radius * (self.time_arr[i] / self.first_radiative_time)**(0.3)
+            self.speed_arr[i] = self.first_radiative_speed * (self.time_arr[i] / self.first_radiative_time)**(-0.7)
+
+    def evolve(self):
+
+        start = time.time()
+        self.reinitialize()
+        self.give_time()
+        self.associate_values()
+        self.radiative_phase()
+        self.merger()
+        end = time.time()
+        print(f"Computation takes {(end-start)} s.")
+
+    def reinitialize(self):
+        
+        self.radius_arr = self.radius_arr_ref
+        del self.speed_arr, self.time_arr, self.first_radiative_radius,
+        self.first_radiative_speed, self.first_radiative_time,
+        self.merger_radius, self.merger_time
+
+
+def test_integration_number_points(plot_evolution:bool=True):
+
+    n_arr = 2**np.arange(2, 15, 1)
+
+    difference = []
+
+    system = PSR_SNR_System(n=1000)
+    system.model_shell = False  
+    system.give_time()
+    system.associate_values()
+    r_arr = system.radius_arr
+
+    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+                      for r_ in r_arr])
+    
+    integral_t_arr_reference = inte.simpson(time_array, r_arr)
+
+    fig = plt.figure()
+
+    if plot_evolution:
+        plt.plot(time_array/cgs.kyr, r_arr/cgs.pc, color="black", linewidth=2, label = "Integration with QUADPACK")
+
+    for n_ in tqdm(n_arr):
+        system = PSR_SNR_System(n=n_)
+        system.give_time()
+
+        integral_t_arr = inte.simpson(system.time_arr, system.radius_arr)
+        diff = np.abs(integral_t_arr - integral_t_arr_reference)/integral_t_arr_reference
+        difference.append(diff)
+
+        if plot_evolution:
+            plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc)
+
+    difference = np.array(difference)
+
+    # print(integral_t_arr)
+
+    if not plot_evolution:
+        plt.plot(n_arr, difference*100)
+    plt.xscale("log")
+    plt.yscale("log")
+    if plot_evolution:
+        plt.xlabel("Time [kyr]")
+        plt.ylabel("Radius [pc]")
+    else:
+        plt.xlabel("Number of array points")
+        plt.ylabel("Integral difference [%]")
+    plt.grid()
+    if plot_evolution:
+        plt.legend()
+    fig.tight_layout()
+    plt.show()
+
+
+def final_system_evolution(n=100):
+
+    system = PSR_SNR_System(n=n)
+    system.associate_values()
+    system.give_time()
+
+
+    fig = plt.figure()
+
+    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+                            for r_ in system.radius_arr])
+
+    plt.plot(time_array/cgs.kyr, system.radius_arr/cgs.pc, color="black", linewidth=2, label = "Integration with QUADPACK")
+
+    plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="Without radiative")
+
+    system.radiative_phase()
+
+    plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="With radiative")
+
+    system = PSR_SNR_System(n=n)
+    system.evolve()
+
+    plt.axhline(y=1.5, linestyle="--", alpha=0.5, linewidth=1,
+                color="black", label="Wind radius")
+    plt.axhline(y=25, linestyle="-.", alpha=0.5, linewidth=1,
+                color="black", label="Bubble radius")
+
+
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Time [kyr]")
+    plt.ylabel("Radius [pc]")
+    plt.grid()
+    plt.legend(fontsize=12)
+    fig.tight_layout()
+    plt.show()
+
+
+def plot_comparison_different_models(n=1000):
+
+    system = PSR_SNR_System(n=n)
+    system.model_shell = False
+    system.give_time()
+    system.associate_values()
+
+    fig = plt.figure()
+
+    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+                            for r_ in system.radius_arr])
+
+    plt.plot(time_array/cgs.kyr, system.radius_arr/cgs.pc, color="black", linewidth=3, label = "QUADPACK CSM")
+
+    time_array_no_CSM = np.array([shock.give_time_radius_integration_constant_density(r_)
+                            for r_ in system.radius_arr])
+
+    plt.plot(time_array_no_CSM/cgs.kyr, system.radius_arr/cgs.pc, color="grey", linewidth=2, label = "QUADPACK ISM")
+
+    system.radiative_phase()
+    print(system.first_radiative_time/cgs.kyr)
+    system.merger()
+    plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="No shell")
+
+    for boolean in [False, True]:
+        system.model_shell = True
+        system.weaver = boolean
+        system.give_time()
+        system.radiative_phase()
+        print(system.first_radiative_time/cgs.kyr)
+        system.merger()
+
+
+        plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label=f"Weaver {boolean}")
+
+    system.reinitialize()
+    system.give_time()
+
+    radius_arr_simple = np.array([bubble.give_SN_radius(t_, E=1e51, n=1, T=8000) for t_ in system.time_arr/cgs.year]) # pc
+
+    plt.plot(system.time_arr/cgs.kyr, radius_arr_simple, linestyle="--", label="Cioffi+1988")
+
+    system.radiative_phase()
+    system.evolve()
+
+
+    plt.axhline(y=1.5, linestyle="--", alpha=0.5, linewidth=1,
+                color="black", label="Wind radius")
+    plt.axhline(y=25, linestyle="-.", alpha=0.5, linewidth=1,
+                color="black", label="Bubble radius")
+    plt.axvline(x=bubble.give_SN_PDS_time(E=1e51, n=1)/1e3, alpha=0.5,
+                linewidth=1, color="red", linestyle=":", label="Radiative")
+
+
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Time [kyr]")
+    plt.ylabel("Radius [pc]")
+    plt.grid()
+    plt.legend(fontsize=12)
+    fig.tight_layout()
+    plt.show()
+
+
+if __name__ == "__main__":
+
+    # convergence_radius()
+    # test_density_temperature_profile()
+    # test_sound_speed()
+
+    # final_system_evolution(n=1000)
+
+    # plot_comparison_different_models(n=500)
+    
+
+    test_integration_number_points()
+
+    1

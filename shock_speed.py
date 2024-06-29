@@ -89,7 +89,7 @@ def give_speed_radius_analytical(
         r: np.ndarray,
         r_w: float,
         r_b: float,
-        E: float = 2.7e50,
+        E: float = 1e51,
         M: float = 5*1.989e33
 ) -> np.ndarray:
     """Gives the speed of the shock at a radius `r`, for a SNR
@@ -121,7 +121,7 @@ def give_speed_radius_analytical(
         elif r > r_w:
             if r < r_b:
                 u_element = factor\
-                    * (M*r**alpha/alpha
+                    * (M*r_w**alpha/alpha
                        + M_loss/u_w*r_w**(alpha+1)/(alpha+1)
                        + (M + M_loss/u_w*r_w - 4*np.pi/3*rho_b*r_w**3)
                         * (r**alpha - r_w**alpha)/alpha
@@ -129,7 +129,7 @@ def give_speed_radius_analytical(
                                            - r_w**(alpha+3))/(alpha+3))
             else:
                 u_element = factor\
-                    * (M*r**alpha/alpha
+                    * (M*r_b**alpha/alpha
                        + M_loss/u_w*r_w**(alpha+1)/(alpha+1)
                        + (M + M_loss/u_w*r_w
                            - 4*np.pi/3*rho_b*(r_b**3 - r_w**3))
@@ -144,6 +144,7 @@ def give_speed_radius_analytical(
         u_arr = u_element
 
     else:
+        u_arr = np.array([])
         for r_ in r:
             factor = 2*alpha*E\
                 / (give_mass_radius_analytical(r_, r_w, r_b)**2 * r_**alpha)
@@ -154,7 +155,7 @@ def give_speed_radius_analytical(
             elif r_ > r_w:
                 if r_ < r_b:
                     u_element = factor\
-                        * (M*r_**alpha/alpha
+                        * (M*r_w**alpha/alpha
                            + M_loss/u_w*r_w**(alpha+1)/(alpha+1)
                            + (M + M_loss/u_w*r_w - 4*np.pi/3*rho_b*r_w**3)
                            * (r_**alpha - r_w**alpha)/alpha
@@ -162,7 +163,7 @@ def give_speed_radius_analytical(
                                               - r_w**(alpha+3))/(alpha+3))
                 else:
                     u_element = factor\
-                        * (M*r_**alpha/alpha
+                        * (M*r_b**alpha/alpha
                            + M_loss/u_w*r_w**(alpha+1)/(alpha+1)
                            + (M + M_loss/u_w*r_w
                               + 4*np.pi/3*rho_b*(r_b**3 - r_w**3))
@@ -174,9 +175,9 @@ def give_speed_radius_analytical(
                            + 4*np.pi/3*rho_ISM*(r_**(alpha+3)
                                                 - r_b**(alpha+3))/(alpha+3))
 
-            u_arr.append(u_element)
+            u_arr = np.append(u_arr, u_element)
 
-    u_arr = (gamma+1)/2 * (np.abs(u_arr))**(1/2)
+    u_arr = (gamma+1)/2 * np.abs(u_arr)**(1/2)
 
     return u_arr  # cm.s-1
 
@@ -316,7 +317,7 @@ def give_time_radius_integration(
     """
 
     t =  integrate.quad(lambda x: 1 /
-         give_speed_radius_analytical(x, r_w, r_b), 1, r)[0]
+         give_speed_radius_analytical(x, r_w, r_b), 0.001, r)[0]
 
     return t
 
@@ -398,9 +399,9 @@ def give_time_radius_integration2(
 
 def plot_mass_radius_analytical() -> None:
 
-    r_arr = np.logspace(np.log10(0.01*pc), np.log10(1000*pc), 5000)  # cm
+    r_arr = np.logspace(np.log10(0.01*pc), np.log10(100*pc), 5000)  # cm
 
-    M_arr = (give_mass_radius_analytical(r_arr, r_w, r_b) - M_ej)/Msol  # Msol
+    M_arr = (give_mass_radius_analytical(r_arr, r_w, r_b))/Msol  # Msol
     r_arr = r_arr/pc  # pc
 
     fig = plt.figure()
@@ -416,6 +417,7 @@ def plot_mass_radius_analytical() -> None:
     plt.legend()
     plt.grid()
     fig.tight_layout()
+    plt.savefig("CSM_plots/shock_speed mass structure.pdf")
     plt.show()
 
 
@@ -424,12 +426,12 @@ def plot_speed_radius_analytical() -> None:
     r_arr = np.logspace(np.log10(0.1*pc), np.log10(100*pc), 1000) # cm
 
     u_arr = give_speed_radius_analytical(r_arr, r_w, r_b)
+    # u_arr2 = give_speed_radius_analytical_constant_density(r_arr)
     r_arr = r_arr/pc
-    u_arr2 = give_speed_radius_analytical_constant_density(r_arr)
 
     fig = plt.figure()
     plt.plot(r_arr, u_arr, label=r"Analytical CSM")
-    plt.plot(r_arr, u_arr2, label=r"Analytical constant ISM")
+    # plt.plot(r_arr, u_arr2, label=r"Analytical constant ISM")
     plt.axvline(x=r_w/pc, color='red', linestyle="--",
                 label=r"$r_\mathrm{w}$")
     plt.axvline(x=r_b/pc, color='green', linestyle="-.",
@@ -441,6 +443,7 @@ def plot_speed_radius_analytical() -> None:
     plt.legend()
     plt.grid()
     fig.tight_layout()
+    plt.savefig("CSM_plots/shock_speed speed structure.pdf")
     plt.show()
 
 
@@ -536,7 +539,7 @@ yr = np.pi * 1e7  # s/yr
 r_w = 1.5*pc  # cm
 r_b = 28*pc  # cm
 M_ej = 5*Msol  # g
-u_w = 1e6  # cm.s-1
+u_w = 3e6  # cm.s-1
 M_loss = 1e-5*Msol/yr  # g.s-1
 m_p = 1.6726e-24  # g
 rho_b = m_p*1e-2  # g.cm-3
@@ -552,8 +555,8 @@ if __name__ == "__main__":
 
     # plot_mass_radius_analytical()
     # plot_speed_radius_analytical()
-    # plot_radius_time_integration()
-    plot_speed_time_integration()
+    plot_radius_time_integration()
+    # plot_speed_time_integration()
 
     #  print(give_speed_time_integration(1))
 

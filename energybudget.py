@@ -2,6 +2,7 @@ import numpy as np
 import scipy.integrate as inte
 import matplotlib.pyplot as plt
 import zeroordergalaxy as galaxy
+from tqdm import tqdm
 
 
 def make_lognormal(zz: np.ndarray, mu: float, sigma: float) -> np.ndarray:
@@ -202,12 +203,12 @@ def plot_efficiency_distribution_fixed_period():
 
 def plot_efficiency_distribution():
 
-    number_pulsars = 10000
+    number_pulsars = 100000
 
     E_SNs = galaxy.give_E_SN(number_pulsars)
     n_ISMs = galaxy.give_n_ISM(number_pulsars)
     v_ks = np.array([galaxy.give_kick_velocity()
-                     for _ in range(number_pulsars)])
+                     for _ in tqdm(range(number_pulsars))])
 
     bowshock_times = bowshock_time(E_SNs, n_ISMs, v_ks)
 
@@ -225,7 +226,7 @@ def plot_efficiency_distribution():
         efficiencies = np.array([available_energy(t_init=bowshock_times[i],
                                                 P0=P0s[i]) /
                                 available_energy(P0=P0s[i])
-                                for i in range(number_pulsars)])*100
+                                for i in tqdm(range(number_pulsars))])*100
 
         efficiencies = efficiencies[efficiencies > 0]
 
