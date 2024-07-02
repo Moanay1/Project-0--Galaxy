@@ -1,5 +1,6 @@
 import firstordergalaxy
 import zeroordergalaxy
+import leaving_the_cradle as cradle
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,6 +8,7 @@ import matplotlib.colors as col
 import scipy.optimize as opt
 import os
 import time
+import cgs
 
 
 def make_lognormal(zz: np.ndarray, mu: float, sigma: float, A) -> np.ndarray:
@@ -522,6 +524,17 @@ def plot_bow_shock_time_distribution():
                          alpha=0.2, color=colors[i],
                          label=labels2[i])
         
+    proportion_arr = np.array([])
+
+    system = cradle.PSR_SNR_System()
+    system.evolve()
+    
+    for time in tqdm(time_pulsars*cgs.year):
+        proportion_arr = np.append(proportion_arr,
+                                   system.give_pulsar_population_inside(time, 10000))
+
+    ax1.plot(time_pulsars/1e3, proportion_arr, color="black", label="Model CSM")
+    
     ax1.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
     ax1.axvline(x=110, linestyle="-.", color="red",
@@ -530,19 +543,35 @@ def plot_bow_shock_time_distribution():
     ax1.set_xscale("log")
     ax1.set_xlabel("Pulsar age [kyr]")
     ax1.set_ylabel("Pulsars in SNR [%]")
-    ax1.legend(fontsize = 9)
+    ax1.legend(fontsize=9)
     ax1.grid()
 
-    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 100000)
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
 
     _, bins = np.histogram(t_bs_arr, bins=100)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-    ax2.hist(t_bs_arr, bins=logbins, histtype="step")
+    ax2.hist(t_bs_arr, bins=logbins, histtype="step", label="Model ISM")
+
+    systems_number = 10000
+    escape_times = np.array([])
+
+    system = cradle.PSR_SNR_System()
+    system.evolve()
+
+    for _ in tqdm(range(systems_number)):
+        escape_times = np.append(escape_times, system.give_escape_time()/cgs.kyr)
+
+    _, bins = np.histogram(escape_times, bins=100)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    ax2.hist(escape_times, bins=logbins, histtype="step", label="Model CSM")
+
     ax2.set_xscale("log")
     ax2.set_xlabel(r"$t_\mathrm{BS}$ [kyr]")
     ax2.set_ylabel(r"Pulsars")
     ax2.grid()
+    ax2.legend(fontsize=9)
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/t_BS_evolution.pdf")
     plt.show()
@@ -814,10 +843,8 @@ def plot_period_PSR():
     plt.show()
 
 
-
-
-
 t_arr = np.logspace(np.log10(1e3), np.log10(1e7), 40, endpoint=True)
+
 
 if __name__ == "__main__":
 

@@ -1008,7 +1008,7 @@ if __name__ == "__main__":
 
     # plot_ISM_sound_speed()
 
-    #plot_characteristic_time_scales()
+    plot_characteristic_time_scales()
 
     # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()

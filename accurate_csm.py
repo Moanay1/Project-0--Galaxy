@@ -365,7 +365,7 @@ def speed_profile(r:np.ndarray,
 def test_density_profile():
     global weaver
     
-    r_arr = np.geomspace(0.01*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
 
     fig = plt.figure()
 
@@ -388,7 +388,7 @@ def test_density_profile():
     plt.grid()
     plt.legend()
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/density_structure.pdf")
+    plt.savefig("Project Summary/CSM_plots/density_structure.pdf")
     plt.show()
     
 
@@ -396,7 +396,7 @@ def test_density_profile():
 def test_mass_profile():
     global weaver
     
-    r_arr = np.geomspace(0.01*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
 
     fig = plt.figure()
 
@@ -419,14 +419,14 @@ def test_mass_profile():
     plt.grid()
     plt.legend()
     fig.tight_layout()
-    plt.savefig("CSM_plots/accurate_csm mass structure.pdf")
+    plt.savefig("Project Summary/CSM_plots/accurate_csm mass structure.pdf")
     plt.show()
 
 
 def test_speed_profile():
     global weaver
     
-    r_arr = np.geomspace(0.01*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
     
 
     fig = plt.figure()
@@ -450,7 +450,7 @@ def test_speed_profile():
     plt.grid()
     plt.legend()
     fig.tight_layout()
-    plt.savefig("CSM_plots/accurate_csm speed structure.pdf")
+    plt.savefig("Project Summary/CSM_plots/accurate_csm speed structure.pdf")
     plt.show()
 
 gamma = 5/3
@@ -459,8 +459,8 @@ weaver = False
 
 if __name__ == "__main__":
 
-    # test_density_profile()
-    # test_mass_profile()
+    test_density_profile()
+    test_mass_profile()
     test_speed_profile()
 
     1

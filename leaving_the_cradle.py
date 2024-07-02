@@ -1,12 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import pulsar
 import shock_speed as shock
 import sn_bubble as bubble
 import scipy.integrate as inte
 import accurate_csm as csm
 import cgs
 import time
+
+
 
 def convergence_radius():
 
@@ -146,9 +149,10 @@ def test_density_temperature_profile():
     ax3.set_ylabel("Time [kyr]")
     ax3.set_xscale("log")
     ax3.set_yscale("log")
-    ax3.legend()
+    ax3.legend(fontsize=10)
     ax3.grid()
     fig.tight_layout()
+    plt.savefig("Project Summary/CSM_plots/temperature density profiles.pdf")
     plt.show()
 
 
@@ -203,11 +207,12 @@ class PSR_SNR_System:
         self.wind_speed = wind_speed
 
         self.integration_points = n
-        self.radius_arr_ref = np.geomspace(0.1*cgs.pc, 500*cgs.pc, num=n)
+        self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=n)
         self.radius_arr = self.radius_arr_ref
 
         self.weaver = weaver
         self.model_shell = model_shell
+
 
     def associate_values(self):
 
@@ -297,8 +302,6 @@ class PSR_SNR_System:
     def radiative_phase(self):
 
         i = 0
-        # while self.coolingtime[i] > self.time_arr[i] or self.radius_arr[i] < self.wind_radius*2:
-        #     i += 1
 
         # Condition of going outside the shell
         while self.radius_arr[i] < self.shell_radius:
@@ -329,13 +332,13 @@ class PSR_SNR_System:
     def evolve(self):
 
         start = time.time()
-        self.reinitialize()
+        # self.reinitialize()
         self.give_time()
         self.associate_values()
         self.radiative_phase()
         self.merger()
         end = time.time()
-        print(f"Computation takes {(end-start)} s.")
+        # print(f"Computation takes {(end-start)} s.")
 
     def reinitialize(self):
         
@@ -343,6 +346,49 @@ class PSR_SNR_System:
         del self.speed_arr, self.time_arr, self.first_radiative_radius,
         self.first_radiative_speed, self.first_radiative_time,
         self.merger_radius, self.merger_time
+
+    def initialize_pulsar(self):
+
+        self.kick_velocity = pulsar.give_kick_velocity()
+
+        self.radius_pulsar = self.time_arr*self.kick_velocity
+
+    def compare_pulsar(self):
+
+        self.initialize_pulsar()
+        self.escape_time = pulsar.find_exact_crossing_point(self.radius_arr,
+                                                            self.radius_pulsar,
+                                                            self.time_arr)
+        
+    def is_pulsar_inside(self, t:float):
+
+        self.compare_pulsar()
+
+        if t < self.escape_time:
+            return True
+        else:
+            return False
+        
+    def give_escape_time(self):
+
+        self.initialize_pulsar()
+        self.compare_pulsar()
+
+        return self.escape_time
+        
+    def give_pulsar_population_inside(self, t:float, n_pulsars:int=1000):
+
+        is_inside_arr = np.array([])
+
+        for _ in range(n_pulsars):
+            is_inside_arr = np.append(is_inside_arr, self.is_pulsar_inside(t))
+
+        proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
+
+        return proportion
+
+
+
 
 
 def test_integration_number_points(plot_evolution:bool=True):
@@ -497,22 +543,78 @@ def plot_comparison_different_models(n=1000):
     plt.xlabel("Time [kyr]")
     plt.ylabel("Radius [pc]")
     plt.grid()
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=10)
+    fig.tight_layout()
+    plt.savefig("Project Summary/CSM_plots/radius(time)_comnparisons.pdf")
+    plt.show()
+
+
+
+def plot_escape_time_distribution():
+
+    systems_number = 10000
+    escape_times = np.array([])
+
+    system = PSR_SNR_System()
+    system.evolve()
+
+    for _ in tqdm(range(systems_number)):
+        escape_times = np.append(escape_times, system.give_escape_time()/cgs.kyr)
+
+    fig = plt.figure()
+
+    _, bins = np.histogram(escape_times, bins=100)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    plt.hist(escape_times, bins=logbins, histtype="step")
+    plt.xscale("log")
+    plt.xlabel(r"$t_\mathrm{BS}$ [kyr]")
+    plt.ylabel(r"Pulsars")
+    plt.grid()
     fig.tight_layout()
     plt.show()
+
+
+def plot_is_pulsar_inside():
+
+    times_arr = np.geomspace(1*cgs.kyr, 10*cgs.Myr, 20)
+    systems_number = 100000
+    proportion_arr = np.array([])
+
+    system = PSR_SNR_System()
+    system.evolve()
+
+    for time in tqdm(times_arr):
+        proportion_arr = np.append(proportion_arr,
+                                   system.give_pulsar_population_inside(time, systems_number))
+
+    fig = plt.figure()
+
+    plt.plot(times_arr/cgs.kyr, proportion_arr)
+    plt.xscale("log")
+    plt.xlabel("Pulsar Age [kyr]")
+    plt.ylabel("Pulsars inside SNR [%]")
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
 
 
 if __name__ == "__main__":
 
     # convergence_radius()
-    # test_density_temperature_profile()
+    test_density_temperature_profile()
     # test_sound_speed()
 
     # final_system_evolution(n=1000)
 
     # plot_comparison_different_models(n=500)
     
+    # plot_escape_time_distribution()
 
-    test_integration_number_points()
+    # plot_is_pulsar_inside()
+
+    # test_integration_number_points()
 
     1
