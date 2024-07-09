@@ -31,7 +31,8 @@ def give_SN_PDS_time2(
 def give_mass_radius_analytical(
         r: np.ndarray,
         r_w: float,
-        r_b: float
+        r_b: float,
+        M=5*1.989e33
 ) -> np.ndarray:
     r"""Gives the mass at the shock depending on the SNR radius `r`.
     The SNR sweeps the matter that is carved by the stellar winds before
@@ -56,28 +57,28 @@ def give_mass_radius_analytical(
 
     if type(r) in [np.float64, int, float]:
         if r < r_w:
-            M_arr.append(M_ej + M_loss/u_w*r)
+            M_arr.append(M + M_loss/u_w*r)
         else:
             if r < r_b:
-                M_arr.append(M_ej
+                M_arr.append(M
                              + M_loss/u_w*r_w
                              + 4*np.pi/3*rho_b*(r**3 - r_w**3))
             else:
-                M_arr.append(M_ej
+                M_arr.append(M
                              + M_loss/u_w*r_w
                              + 4*np.pi/3*rho_b*(r_b**3 - r_w**3)
                              + 4*np.pi/3*rho_ISM*(r**3 - r_b**3))
     else:
         for r_ in r:
             if r_ < r_w:
-                M_arr.append(M_ej + M_loss/u_w*r_)
+                M_arr.append(M + M_loss/u_w*r_)
             else:
                 if r_ < r_b:
-                    M_arr.append(M_ej
+                    M_arr.append(M
                                  + M_loss/u_w*r_w
                                  + 4*np.pi/3*rho_b*(r_**3 - r_w**3))
                 else:
-                    M_arr.append(M_ej
+                    M_arr.append(M
                                  + M_loss/u_w*r_w
                                  + 4*np.pi/3*rho_b*(r_b**3 - r_w**3)
                                  + 4*np.pi/3*rho_ISM*(r_**3 - r_b**3))
@@ -110,10 +111,10 @@ def give_speed_radius_analytical(
         np.ndarray: cm/s, speed of the shock at radius `r`.
     """
     u_arr = []
-
+    
     if type(r) in [np.float64, int, float]:
         factor = 2*alpha*E \
-            / (give_mass_radius_analytical(r, r_w, r_b)**2 * r**alpha)
+            / (give_mass_radius_analytical(r, r_w, r_b, M)**2 * r**alpha)
         if r < r_w:
             u_element = factor\
                 * ((M/alpha) * r**alpha
@@ -147,7 +148,7 @@ def give_speed_radius_analytical(
         u_arr = np.array([])
         for r_ in r:
             factor = 2*alpha*E\
-                / (give_mass_radius_analytical(r_, r_w, r_b)**2 * r_**alpha)
+                / (give_mass_radius_analytical(r_, r_w, r_b, M)**2 * r_**alpha)
             if r_ < r_w:
                 u_element = factor\
                     * ((M/alpha) * r_**alpha
@@ -303,7 +304,8 @@ def integrate_simpson(
 def give_time_radius_integration(
         r: float,
         r_w: float,
-        r_b: float
+        r_b: float,
+        M=5*1.989e33
 ) -> np.ndarray:
     """Finds the relationship between time and position of the SNR by
     integrating on the inverse of the SNR speed.
@@ -317,13 +319,14 @@ def give_time_radius_integration(
     """
 
     t =  integrate.quad(lambda x: 1 /
-         give_speed_radius_analytical(x, r_w, r_b), 0.001, r)[0]
+         give_speed_radius_analytical(x, r_w, r_b, M=M), 0.001, r)[0]
 
     return t
 
 
 def give_time_radius_integration_constant_density(
         r: float,
+        M=5
 ) -> np.ndarray:
     """Finds the relationship between time and position of the SNR by
     integrating on the inverse of the SNR speed.
@@ -335,7 +338,7 @@ def give_time_radius_integration_constant_density(
     """
 
     t =  integrate.quad(lambda x: 1 /
-         give_speed_radius_analytical_constant_density(x), 0.001, r)[0]
+         give_speed_radius_analytical_constant_density(x, M=M), 0.001, r)[0]
 
     return t
 
@@ -538,7 +541,7 @@ Msol = 1.989e33  # g/Msol
 yr = np.pi * 1e7  # s/yr
 r_w = 1.5*pc  # cm
 r_b = 28*pc  # cm
-M_ej = 5*Msol  # g
+M_ej = 15*Msol  # g
 u_w = 3e6  # cm.s-1
 M_loss = 1e-5*Msol/yr  # g.s-1
 m_p = 1.6726e-24  # g

@@ -121,7 +121,7 @@ def test_density_temperature_profile():
     fig, (ax1, ax3) = plt.subplots(2, 1, sharex=True)
 
     color = 'tab:red'
-    ax1.set_ylabel(r"Number density [cm$^{-3}$]", color=color)
+    ax1.set_ylabel(r"Density [cm$^{-3}$]", color=color)
     ax1.plot(r_arr/cgs.pc, density_profile(r_arr), color=color)
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.set_xscale("log")
@@ -191,7 +191,7 @@ def test_sound_speed():
 
 
 class PSR_SNR_System:
-    def __init__(self, E_SN = 1e51*cgs.erg, n_ISM = 1, m_ej = 5*cgs.sun_mass, 
+    def __init__(self, E_SN = 1e51*cgs.erg, n_ISM = 1, m_ej = 15*cgs.sun_mass, 
                  mass_loss = 1e-5*cgs.sun_mass/cgs.year, 
                  wind_speed = 3e6*cgs.cm/cgs.second, n = 100,
                  weaver:bool = False, model_shell:bool = True) -> None:
@@ -230,30 +230,50 @@ class PSR_SNR_System:
 
     def give_time(self, plot=False):
 
-        self.radius_arr = self.radius_arr_ref
+        self.radius_arr = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
         integration_constant = shock.give_time_radius_integration(self.radius_arr[0],
                                                          self.wind_radius,
                                                          self.bubble_radius)
 
         if self.model_shell:
             self.speed_arr = csm.speed_profile(self.radius_arr,
-                                            m_ej=self.ejected_mass,
-                                            mass_loss=self.stellar_mass_loss,
-                                            wind_speed=self.wind_speed,
-                                            rw=self.wind_radius,
-                                            rb=self.bubble_radius,
-                                            rho_bubble=self.bubble_density,
-                                            rho_shell=17*cgs.proton_mass,
-                                            rho_ISM=self.ism_density,
-                                            r_shell=self.shell_width,
-                                            E_SN=self.supernova_energy,
-                                            weaver=self.weaver)
+                                               m_ej=self.ejected_mass,
+                                               mass_loss=self.stellar_mass_loss,
+                                               wind_speed=self.wind_speed,
+                                               rw=self.wind_radius,
+                                               rb=self.bubble_radius,
+                                               rho_bubble=self.bubble_density,
+                                               rho_shell=17*cgs.proton_mass,
+                                               rho_ISM=self.ism_density,
+                                               r_shell=self.shell_width,
+                                               E_SN=self.supernova_energy,
+                                               weaver=self.weaver)
+            integration_constant = inte.quad(lambda x:1/csm.speed_profile(r=np.array([x]),
+                                                                          m_ej=self.ejected_mass,
+                                                                          mass_loss=self.stellar_mass_loss,
+                                                                          wind_speed=self.wind_speed,
+                                                                          rw=self.wind_radius,
+                                                                          rb=self.bubble_radius,
+                                                                          rho_bubble=self.bubble_density,
+                                                                          rho_shell=17*cgs.proton_mass,
+                                                                          rho_ISM=self.ism_density,
+                                                                          r_shell=self.shell_width,
+                                                                          E_SN=self.supernova_energy,
+                                                                          weaver=self.weaver),
+                                             0.001, self.radius_arr[0])[0]
         elif not self.model_shell:
             self.speed_arr = shock.give_speed_radius_analytical(self.radius_arr,
                                                                 self.wind_radius,
                                                                 self.bubble_radius,
                                                                 self.supernova_energy,
                                                                 self.ejected_mass)
+            integration_constant = inte.quad(lambda x:1/shock.give_speed_radius_analytical(r=x,
+                                                                                           r_w=self.wind_radius,
+                                                                                           r_b=self.bubble_radius,
+                                                                                           E=self.supernova_energy,
+                                                                                           M=self.ejected_mass),
+                                             0.001, self.radius_arr[0])[0]
+                
 
         self.time_arr = np.array([inte.simpson(1/self.speed_arr[:i], self.radius_arr[:i])
                                   for i in range(2, self.integration_points)]) + integration_constant
@@ -303,8 +323,39 @@ class PSR_SNR_System:
 
         i = 0
 
+        while self.time_arr[i] > self.coolingtime[i] and \
+              self.radius_arr[i] > self.wind_radius:
+            i += 1
+
+        self.first_radiative_radius = self.radius_arr[i]
+        self.first_radiative_time = self.time_arr[i]
+        self.first_radiative_speed = self.speed_arr[i]
+
+        if self.first_radiative_radius < self.shell_radius:
+            self.radiative_phase_inside()
+        else:
+            self.radiative_phase_outside()
+        
+
+
+    def radiative_phase_inside(self):
+
+        i = 0
+
         # Condition of going outside the shell
-        while self.radius_arr[i] < self.shell_radius:
+        while self.radius_arr[i+1] < self.shell_radius:
+            i += 1
+
+        self.radius_arr[i:] = self.shell_radius
+        self.speed_arr[i:] = 0
+
+
+    def radiative_phase_outside(self):
+
+        i = 0
+
+        # Condition of going outside the shell
+        while self.radius_arr[i+1] < self.shell_radius:
             i += 1
 
         shell_index = i
@@ -325,9 +376,10 @@ class PSR_SNR_System:
         self.first_radiative_time = self.time_arr[i]
         self.first_radiative_speed = self.speed_arr[i]
 
-        for i in range(i, len(self.radius_arr)):
-            self.radius_arr[i] = self.first_radiative_radius * (self.time_arr[i] / self.first_radiative_time)**(0.3)
-            self.speed_arr[i] = self.first_radiative_speed * (self.time_arr[i] / self.first_radiative_time)**(-0.7)
+        for j in range(i, len(self.radius_arr)):
+            self.radius_arr[j] = self.first_radiative_radius * (self.time_arr[j] / self.first_radiative_time)**(0.3)
+            self.speed_arr[j] = self.first_radiative_speed * (self.time_arr[j] / self.first_radiative_time)**(-0.7)
+
 
     def evolve(self):
 
@@ -342,7 +394,7 @@ class PSR_SNR_System:
 
     def reinitialize(self):
         
-        self.radius_arr = self.radius_arr_ref
+        self.radius_arr = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
         del self.speed_arr, self.time_arr, self.first_radiative_radius,
         self.first_radiative_speed, self.first_radiative_time,
         self.merger_radius, self.merger_time
@@ -484,21 +536,23 @@ def final_system_evolution(n=100):
     plt.show()
 
 
-def plot_comparison_different_models(n=1000):
+def plot_comparison_different_models(n=500):
 
-    system = PSR_SNR_System(n=n)
+    m_ej = 5*cgs.sun_mass
+
+    system = PSR_SNR_System(n=n, m_ej=m_ej)
     system.model_shell = False
     system.give_time()
     system.associate_values()
 
     fig = plt.figure()
 
-    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc, M=m_ej)
                             for r_ in system.radius_arr])
 
     plt.plot(time_array/cgs.kyr, system.radius_arr/cgs.pc, color="black", linewidth=3, label = "QUADPACK CSM")
 
-    time_array_no_CSM = np.array([shock.give_time_radius_integration_constant_density(r_)
+    time_array_no_CSM = np.array([shock.give_time_radius_integration_constant_density(r_, M=m_ej)
                             for r_ in system.radius_arr])
 
     plt.plot(time_array_no_CSM/cgs.kyr, system.radius_arr/cgs.pc, color="grey", linewidth=2, label = "QUADPACK ISM")

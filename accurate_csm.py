@@ -4,6 +4,9 @@ import scipy.special as sp
 from tqdm import tqdm
 import cgs
 
+plt.rcParams.update({'font.size': 12})
+plt.rcParams["font.family"] = "serif"
+
 
 def density_profile(r:np.ndarray,
                     mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
@@ -402,7 +405,7 @@ def test_mass_profile():
 
     for boolean in [True, False]:
         weaver = boolean
-        m_arr = mass_profile(r_arr, m_ej=5*cgs.sun_mass)
+        m_arr = mass_profile(r_arr, m_ej=15*cgs.sun_mass)
         plt.plot(r_arr/cgs.pc, m_arr/cgs.sun_mass, label=r"M(r), "f"Weaver {weaver}")
 
     plt.axvline(x=1.5, color='black', linestyle="--",
@@ -433,7 +436,7 @@ def test_speed_profile():
 
     for boolean in [True, False]:
         weaver = boolean
-        s_arr = speed_profile(r_arr, m_ej=5*cgs.sun_mass)
+        s_arr = speed_profile(r_arr, m_ej=15*cgs.sun_mass)
         plt.plot(r_arr/cgs.pc, s_arr, label=r"$u_\mathrm{s}(r)$, "f"Weaver {weaver}")
 
     plt.axvline(x=1.5, color='black', linestyle="--",
@@ -459,8 +462,8 @@ weaver = False
 
 if __name__ == "__main__":
 
-    test_density_profile()
+    # test_density_profile()
     test_mass_profile()
-    test_speed_profile()
+    # test_speed_profile()
 
     1
