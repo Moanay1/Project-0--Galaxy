@@ -7,6 +7,7 @@ from scipy.stats import lognorm
 import random
 import shock_speed as shock
 from tqdm import tqdm
+import cgs
 
 np.set_printoptions(precision=3)
 plt.rcParams.update({'font.size': 17})
@@ -113,14 +114,14 @@ def give_RSG_time(M_init: np.ndarray) -> np.ndarray:
     return t
 
 
-def give_WR_time(M: np.ndarray, model="Seo") -> np.ndarray:
+def give_WR_time(M_init: np.ndarray, model="Zakhozhay") -> np.ndarray:
     """Choose from "Seo" and "Zakhozhay" """
 
     if model == "Seo":  # Seo et al 2018
-        t = 10**(7.91 - 0.77*np.log10(M))
+        t = 10**(7.91 - 0.77*np.log10(M_init))
     if model == "Zakhozhay":  # Zakhozhay 2013
-        t = 10**(9.96 - 3.32*np.log10(M) + 0.63*np.log10(M) **
-                 2 + 0.19*np.log10(M)**3 - 0.057*np.log10(M)**4)
+        t = 10**(9.96 - 3.32*np.log10(M_init) + 0.63*np.log10(M_init) **
+                 2 + 0.19*np.log10(M_init)**3 - 0.057*np.log10(M_init)**4)
     return t
 
 
@@ -169,6 +170,15 @@ def give_wind_luminosity_WC(M: np.ndarray) -> np.ndarray:
     return L
 
 
+def give_wind_luminosity_type(M: np.ndarray) -> np.ndarray:
+
+    if M < 16:
+        return give_wind_luminosity_B(M)
+    else:
+        return give_wind_luminosity_O(M)
+    
+
+
 def give_wind_speed_O(M: np.ndarray) -> np.ndarray:
     """Parametrization from Seo et al. 2018"""
     v = 10**(3.28 + 0.08*np.log10(M))  # km.s-1
@@ -199,6 +209,22 @@ def give_wind_speed_WC(M: np.ndarray) -> np.ndarray:
     return v
 
 
+def give_wind_speed_type(M: np.ndarray, typee: str) -> np.ndarray:
+
+    if typee == "B":
+        return give_wind_speed_B(M)
+    elif typee == "O":
+        return give_wind_speed_O(M)
+    elif typee == "RSG":
+        return give_wind_speed_RSG(M)
+    elif typee == "WN":
+        return give_wind_speed_WN(M)
+    elif typee == "WC":
+        return give_wind_speed_WC(M)
+    else:
+        raise ValueError("Star type should be 'B', 'O', 'RSG, 'WN', 'WC'")
+
+
 def give_mass_loss_MS(M: np.ndarray) -> np.ndarray:
     """Parametrization from Seo et al. 2018"""
     Mdot = 10**(-3.38*np.log10(M)**2 + 14.59*np.log10(M) - 20.84)  # Msol.yr-1
@@ -223,9 +249,22 @@ def give_mass_loss_WC(M: np.ndarray) -> np.ndarray:
     return Mdot
 
 
+def give_mass_loss_type(M: np.ndarray, typee: str) -> np.ndarray:
+    if typee == "MS":
+        return give_mass_loss_MS(M)
+    elif typee == "RSG":
+        return give_mass_loss_RSG(M)
+    elif typee == "WN":
+        return give_mass_loss_WN(M)
+    elif typee == "WC":
+        return give_mass_loss_WC(M)
+    else:
+        raise ValueError("Star type should be 'MS', 'RSG, 'WN', 'WC'")
+
+
 def give_bubble_density(
     M: np.ndarray,
-    n_ISM: float = 0.069,
+    n_ISM: float = 1,
     t: float = 1e8
 ) -> np.ndarray:
     """Bubble density in cm-3"""
@@ -235,15 +274,26 @@ def give_bubble_density(
             L_arr = np.append(L_arr, give_wind_luminosity_O(M_))  # erg.s-1
         else:
             L_arr = np.append(L_arr, give_wind_luminosity_B(M_))
-    t_ = np.minimum(give_MS_time(M), t)  # yr
+    t_ = give_MS_time(M)  # yr
     n_b = 0.01 * (L_arr/1e36)**(6/35) * (n_ISM)**(19/35) * \
         (t_/1e6)**(-22/35)  # cm-3
     return n_b
 
 
+def give_bubble_density_type(M, n_ISM=1):
+
+    L = give_wind_luminosity_type(M)
+    
+    t_MS = give_MS_time(M)  # yr
+    n_b = 0.01 * (L/1e36)**(6/35) * (n_ISM)**(19/35) * \
+        (t_MS/1e6)**(-22/35)  # cm-3
+    return n_b
+    
+
+
 def give_bubble_radius(
     M: np.ndarray,
-    n_ISM: float = 0.069,
+    n_ISM: float = 1,
     t: int = None
 ) -> np.ndarray:
     """Bubble radius in pc. Parametrization from Weaver 1988."""
@@ -253,15 +303,23 @@ def give_bubble_radius(
             L_arr = np.append(L_arr, give_wind_luminosity_O(M_))  # erg.s-1
         else:
             L_arr = np.append(L_arr, give_wind_luminosity_B(M_))
-    if t is None:
-        t = give_MS_time(M)  # yr
-    r_b = 28 * (L_arr/1e36)**(1/5) * (n_ISM)**(-1/5) * (t/1e6)**(3/5)  # pc
+    t_MS = give_MS_time(M)  # yr
+    r_b = 28 * (L_arr/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
+    return r_b
+
+
+def give_bubble_radius_type(M, n_ISM=1):
+
+    L = give_wind_luminosity_type(M)
+    
+    t_MS = give_MS_time(M)  # yr
+    r_b = 28 * (L/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
     return r_b
 
 
 def give_wind_radius(
     M: np.ndarray,
-    n_ISM: float = 0.069,
+    n_ISM: float = 1,
     t: int = None
 ) -> np.ndarray:
     """Wind radius in pc"""
@@ -269,6 +327,8 @@ def give_wind_radius(
     u_arr = np.array([])
     M_dot_arr = np.array([])
     type_arr = np.array([])
+    t_arr = np.array([])
+
     for M_ in M:
         if M_ > 16:
             L_arr = np.append(L_arr, give_wind_luminosity_O(M_))  # erg.s-1
@@ -277,16 +337,18 @@ def give_wind_radius(
             L_arr = np.append(L_arr, give_wind_luminosity_B(M_))
             type_arr = np.append(type_arr, "B")
     for M_ in M:
-        if M_ < 10**1.6:
+        if M_ < 40:
             M_dot_arr = np.append(
-                M_dot_arr, give_mass_loss_RSG(M_))  # Msol.s-1
+                M_dot_arr, give_mass_loss_RSG(M_))  # Msol.yr-1
             u_arr = np.append(u_arr, give_wind_speed_RSG(M_)*1e5)  # cm.s-1
             type_arr = np.append(type_arr, "RSG")
+            t_arr = np.append(t_arr, give_RSG_time(M_))
         else:
             WR_type = random.choice(["WC", "WN"])
+            t_arr = np.append(t_arr, give_WR_time(M_))
             if WR_type == "WC":
                 M_dot_arr = np.append(
-                    M_dot_arr, give_mass_loss_WC(M_))  # Msol.s-1
+                    M_dot_arr, give_mass_loss_WC(M_))  # Msol.yr-1
                 u_arr = np.append(u_arr, give_wind_speed_WC(M_)*1e5)  # cm.s-1
                 type_arr = np.append(type_arr, WR_type)
             if WR_type == "WN":
@@ -294,11 +356,33 @@ def give_wind_radius(
                     M_dot_arr, give_mass_loss_WN(M_))  # Msol.s-1
                 u_arr = np.append(u_arr, give_wind_speed_WN(M_)*1e5)  # cm.s-1
                 type_arr = np.append(type_arr, WR_type)
-    if t is None:
-        t = give_MS_time(M)  # yr
+
+    t_MS = give_MS_time(M)  # yr
+
+    # t = np.minimum(np.array([t for _ in range(len(t_MS))]), t_MS)
+    
     r = 1.3 * (M_dot_arr/1e-5)**(1/2) * (u_arr/1e6)**(1/2) * \
-        (L_arr/1e36)**(-7/35) * (n_ISM)**(-21/70) * (t/1e6)**(14/35)  # pc
+       (L_arr/1e36)**(-7/35) * (n_ISM)**(-21/70) * (t_MS/1e6)**(14/35)  # pc
+    
     return r, type_arr
+
+
+def give_wind_radius_type(M, typee, n_ISM=1):
+
+    mass_loss = give_mass_loss_type(M, typee)
+    wind_speed = give_wind_speed_type(M, typee)
+    luminosity = give_wind_luminosity_type(M)
+
+    t_MS = give_MS_time(M)  # yr
+
+    r = 1.3 * (mass_loss/1e-5)**(1/2) * (wind_speed/1e6)**(1/2) * \
+       (luminosity/1e36)**(-7/35) * (n_ISM)**(-21/70) * (t_MS/1e6)**(14/35)  # pc
+    
+    return r
+
+
+
+
 
 
 def give_SN_PDS_time(
@@ -871,21 +955,13 @@ def plot_bubble_radius() -> None:
     M = np.linspace(8, 150, 500)  # Solar masses
 
     fig = plt.figure()
-    plt.plot(M, give_bubble_radius(M, t=1e6), color="red", linestyle="-",
-             label=r"$t = {:.2f}$ Myr".format(1)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=1e6)[0], color="red", linestyle="--",
-             label=r"$t = {:.2f}$ Myr".format(1)+", r$_\mathrm{w}$")
-    plt.plot(M, give_bubble_radius(M, t=5e6), color="blue", linestyle="-",
-             label=r"$t = {:.2f}$ Myr".format(5)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=5e6)[0], color="blue", linestyle="--",
-             label=r"$t = {:.2f}$ Myr".format(5)+", r$_\mathrm{w}$")
-    plt.plot(M, give_bubble_radius(M, t=1e7), color="green", linestyle="-",
-             label=r"$t = {:.2f}$ Myr".format(10)+", r$_\mathrm{b}$")
-    plt.plot(M, give_wind_radius(M, t=1e7)[0], color="green", linestyle="--",
-             label=r"$t = {:.2f}$ Myr".format(10)+", r$_\mathrm{w}$")
+    plt.plot(M, give_bubble_radius(M), label=r"$r_\mathrm{b}$")
+    plt.plot(M, give_wind_radius(M)[0], label=r"$r_\mathrm{w}$")
+    plt.axvline(x=16, color = "black", linestyle="--", label=r"B$\rightarrow$O stars")
+    plt.axvline(x=40, color = "green", linestyle="--", label=r"O$\rightarrow$WR stars")
     plt.xscale("log")
     plt.yscale("log")
-    plt.legend()
+    plt.legend(fontsize=12)
     plt.grid()
     plt.xlabel(r"$M$ [M$_\odot$]")
     plt.ylabel(r"$r$ [pc]")
@@ -951,36 +1027,22 @@ def plot_characteristic_time_scales():
     plt.show()
 
 
-class Stars:
-    def __init__(self, N: int, M_array: np.ndarray = None, t: float = 1e7):
-        self.N = int(N)
-        self.t = t
-        # Define the initial masses and characteristic times associated
-        # to the different phases of a star
-        if M_array is None:
-            self.init_mass = np.array(
-                [give_random_value(pick_IMF, 2, 150) for _ in range(self.N)])
-        else:
-            self.init_mass = M_array
-            self.N = len(self.init_mass)
-        self.time_MS = give_MS_time(self.init_mass, model="Seo")
-        self.time_RSG = give_RSG_time(self.init_mass)
-        self.time_WR = give_WR_time(self.init_mass)
-        self.type = np.array(
-            ["MSO" if self.init_mass[i] > 16 else "MSB"
-             for i in range(self.N)])
+class Star:
+    def __init__(self, M = 8, n_ISM:float=1):
 
-        # Give the stage in the life of the stars at input time t
-        for i in range(self.N):
-            if t > self.time_MS[i]:
-                if self.init_mass[i] < 10**1.6:
-                    self.type[i] = "RSG"
-                    if t > self.time_RSG[i]:
-                        self.type[i] = "SN"
-                else:
-                    self.type[i] = random.choice(["WC", "WN"])
-                    if t > self.time_WR[i]:
-                        self.type[i] = "SN"
+        self.init_mass = M
+        
+        self.ism_density = n_ISM
+        self.MS_type = "O" if self.init_mass > 16 else "B"
+        self.postMS_type = "RSG" if self.init_mass < 40 \
+                                 else random.choice(["WC", "WN"])
+
+        self.mass_loss = give_mass_loss_type(self.init_mass, self.postMS_type) * cgs.sun_mass / cgs.year
+        self.wind_speed = give_wind_speed_type(self.init_mass, self.postMS_type) * cgs.km
+        self.wind_radius = give_wind_radius_type(self.init_mass, self.postMS_type, self.ism_density) * cgs.pc
+        self.bubble_radius = give_bubble_radius_type(self.init_mass, self.ism_density) * cgs.pc
+        self.bubble_density = give_bubble_density_type(self.init_mass, self.ism_density) * cgs.proton_mass
+
 
 
 gamma = 5/3  # adiabatic coefficient for monoatomic gas
@@ -992,10 +1054,11 @@ Msol = 1.989e33  # g/Msol
 yr = np.pi * 1e7  # s/yr
 AGE_GEMINGA = 342e3 # yr
 
+
 if __name__ == "__main__":
     # TESTS AND PLOTS
 
-    # test_IMF()
+    test_IMF()
     # plot_MS_time()
     # plot_wind_luminosity()
     # plot_wind_speed()
@@ -1008,7 +1071,7 @@ if __name__ == "__main__":
 
     # plot_ISM_sound_speed()
 
-    plot_characteristic_time_scales()
+    # plot_characteristic_time_scales()
 
     # plot_SN_radius_comparison_Leahy()
     # plot_SN_radius_extreme_cases()

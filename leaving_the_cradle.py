@@ -103,7 +103,7 @@ def temperature_profile(r:np.ndarray,
             # T = 1e6*cgs.K # From Recchia+2022
             T = 1e6*cgs.K*((1 - r_/r_b) / (1 - r_w/r_b))**(2/5) # From Weaver+1977
         elif r_ < r_b + r_shell:
-            T = 80*cgs.K
+            T = 8000*cgs.K
         else:
             T = 8000*cgs.K
         temperature_arr.append(T)
@@ -191,16 +191,24 @@ def test_sound_speed():
 
 
 class PSR_SNR_System:
-    def __init__(self, E_SN = 1e51*cgs.erg, n_ISM = 1, m_ej = 15*cgs.sun_mass, 
+    def __init__(self,
+                 E_SN = 1e51*cgs.erg,
+                 n_ISM = 1,
+                 m_ej = 15*cgs.sun_mass, 
                  mass_loss = 1e-5*cgs.sun_mass/cgs.year, 
-                 wind_speed = 3e6*cgs.cm/cgs.second, n = 100,
+                 wind_speed = 3e6*cgs.cm/cgs.second, n = 500,
+                 wind_radius = 1.5*cgs.pc,
+                 bubble_radius = 25*cgs.pc,
+                 bubble_density = 0.01*cgs.proton_mass,
                  weaver:bool = False, model_shell:bool = True) -> None:
+        
         self.supernova_energy = E_SN
         self.ism_density = n_ISM*cgs.proton_mass
-        self.bubble_density = 0.01*cgs.proton_mass
-        self.wind_radius = 1.5*cgs.pc
-        self.bubble_radius = 25*cgs.pc
+        self.bubble_density = bubble_density
+        self.wind_radius = wind_radius
+        self.bubble_radius = bubble_radius
         self.shell_width = 1*cgs.pc
+        self.shell_density = 17*cgs.proton_mass
         self.shell_radius = self.bubble_radius + self.shell_width
         self.ejected_mass = m_ej
         self.stellar_mass_loss = mass_loss
@@ -243,7 +251,7 @@ class PSR_SNR_System:
                                                rw=self.wind_radius,
                                                rb=self.bubble_radius,
                                                rho_bubble=self.bubble_density,
-                                               rho_shell=17*cgs.proton_mass,
+                                               rho_shell=self.shell_density,
                                                rho_ISM=self.ism_density,
                                                r_shell=self.shell_width,
                                                E_SN=self.supernova_energy,
@@ -255,7 +263,7 @@ class PSR_SNR_System:
                                                                           rw=self.wind_radius,
                                                                           rb=self.bubble_radius,
                                                                           rho_bubble=self.bubble_density,
-                                                                          rho_shell=17*cgs.proton_mass,
+                                                                          rho_shell=self.shell_density,
                                                                           rho_ISM=self.ism_density,
                                                                           r_shell=self.shell_width,
                                                                           E_SN=self.supernova_energy,
@@ -440,6 +448,33 @@ class PSR_SNR_System:
         return proportion
 
 
+def evaluate_one_system(M=8, t=100e3*cgs.year):
+
+    star = bubble.Star(M)
+
+    system = PSR_SNR_System(mass_loss=star.mass_loss,
+                            wind_speed=star.wind_speed,
+                            wind_radius=star.wind_radius,
+                            bubble_radius=star.bubble_radius,
+                            bubble_density=star.bubble_density
+                            )
+    
+    system.evolve()
+
+    return system.give_pulsar_population_inside(t=t, n_pulsars=1)/100
+
+
+def evaluate_several_systems(n=1000, t=100e3*cgs.year):
+
+    proportion_arr = np.array([])
+
+    for _ in range(n):
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
+        proportion_arr = np.append(proportion_arr, evaluate_one_system(M, t))
+
+    proportion = np.count_nonzero(proportion_arr)/n*100
+
+    return proportion
 
 
 
@@ -590,6 +625,12 @@ def plot_comparison_different_models(n=500):
                 color="black", label="Bubble radius")
     plt.axvline(x=bubble.give_SN_PDS_time(E=1e51, n=1)/1e3, alpha=0.5,
                 linewidth=1, color="red", linestyle=":", label="Radiative")
+    
+    # Characteristic pulsar
+
+    v_kick = 300 * cgs.km / cgs.sec
+    plt.plot(system.time_arr/cgs.kyr, system.time_arr*v_kick/cgs.pc,
+             linestyle="-", linewidth=3, label="Characteristic pulsar")
 
 
     plt.xscale("log")
@@ -658,17 +699,20 @@ def plot_is_pulsar_inside():
 if __name__ == "__main__":
 
     # convergence_radius()
-    test_density_temperature_profile()
+    # test_density_temperature_profile()
     # test_sound_speed()
 
     # final_system_evolution(n=1000)
 
-    # plot_comparison_different_models(n=500)
+    plot_comparison_different_models(n=500)
     
     # plot_escape_time_distribution()
 
     # plot_is_pulsar_inside()
 
     # test_integration_number_points()
+
+
+    # print(evaluate_several_systems(t=100*cgs.kyr))
 
     1
