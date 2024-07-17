@@ -460,21 +460,26 @@ def evaluate_one_system(M=8, t=100e3*cgs.year):
                             )
     
     system.evolve()
+    inside = system.give_pulsar_population_inside(t=t, n_pulsars=1)/100
+    escape_time = system.escape_time
 
-    return system.give_pulsar_population_inside(t=t, n_pulsars=1)/100
+    return inside, escape_time
 
 
 def evaluate_several_systems(n=1000, t=100e3*cgs.year):
 
     proportion_arr = np.array([])
+    escape_times = np.array([])
 
     for _ in range(n):
         M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
-        proportion_arr = np.append(proportion_arr, evaluate_one_system(M, t))
+        result = evaluate_one_system(M, t)
+        proportion_arr = np.append(proportion_arr, result[0])
+        escape_times = np.append(escape_times, result[1])
 
     proportion = np.count_nonzero(proportion_arr)/n*100
 
-    return proportion
+    return proportion, escape_times
 
 
 

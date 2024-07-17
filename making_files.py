@@ -538,7 +538,7 @@ def plot_bow_shock_time_distribution():
     proportion_arr = np.array([])
     for time in tqdm(t_arr*cgs.year):
         proportion_arr = np.append(proportion_arr,
-                                   cradle.evaluate_several_systems(t=time))
+                                   cradle.evaluate_several_systems(n=100, t=time)[0])
         
     ax1.plot(t_arr/1e3, proportion_arr, color="blue", label="Varying CSM")
     
@@ -553,23 +553,30 @@ def plot_bow_shock_time_distribution():
     ax1.legend(fontsize=9)
     ax1.grid()
 
-    # t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 1000)
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
 
-    # _, bins = np.histogram(t_bs_arr, bins=100)
-    # logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    file = open("Escape Times/ISM.csv", "w")
 
-    # ax2.hist(t_bs_arr, bins=logbins, histtype="step", label="Model ISM")
+    for i in range(len(t_bs_arr)):
+        file.write(f"{t_bs_arr[i]}\n")
+
+    _, bins = np.histogram(t_bs_arr, bins=500)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    ax2.hist(t_bs_arr, bins=logbins, histtype="step", label="Model ISM")
 
     systems_number = 10000
     escape_times = np.array([])
 
-    system = cradle.PSR_SNR_System()
-    system.evolve()
+
+    file = open("Escape Times/CSM.csv", "w")
 
     for _ in tqdm(range(systems_number)):
-        escape_times = np.append(escape_times, system.give_escape_time()/cgs.kyr)
+        escape_time = cradle.evaluate_several_systems(n=1)[1]/cgs.kyr
+        file.write(f"{escape_time[0]}\n")
+        escape_times = np.append(escape_times, escape_time)
 
-    _, bins = np.histogram(escape_times, bins=100)
+    _, bins = np.histogram(escape_times, bins=500)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     ax2.hist(escape_times, bins=logbins, histtype="step", label="Model CSM")
@@ -850,7 +857,7 @@ def plot_period_PSR():
     plt.show()
 
 
-t_arr = np.logspace(np.log10(5e3), np.log10(1e6), 20, endpoint=True)
+t_arr = np.logspace(np.log10(5e3), np.log10(1e6), 5, endpoint=True)
 
 
 if __name__ == "__main__":

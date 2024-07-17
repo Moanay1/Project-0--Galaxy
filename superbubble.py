@@ -235,9 +235,13 @@ def plot_escape_time_distribution():
     systems_number = 10000
     escape_times = np.array([])
 
+    file = open("Escape Times/Superbubble.csv", "w")
+
 
     for _ in tqdm(range(systems_number)):
-        escape_times = np.append(escape_times, evaluate_one_system()/cgs.kyr)
+        escape_time = evaluate_one_system()/cgs.kyr
+        file.write(f"{escape_time}\n")
+        escape_times = np.append(escape_times, escape_time)
 
     fig = plt.figure()
 

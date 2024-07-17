@@ -1,0 +1,37 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def plot_escape_times():
+
+    models = ["ISM", "CSM", "Superbubble"]
+
+    fig = plt.figure()
+
+    for model in models:
+        data = np.genfromtxt(f"Escape Times/{model}.csv")
+
+        _, bins = np.histogram(data, bins=50)
+        logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+        plt.hist(data, bins=logbins, histtype="step", label=f"{model}")
+
+    plt.axvline(x=342, linestyle="--", color="red",
+                label=r"Geminga: 342 kyr")
+    plt.axvline(x=110, linestyle="-.", color="red",
+                label=r"Monogem: 110 kyr")
+    
+    plt.xlabel("Escape Time [kyr]")
+    plt.ylabel("Pulsars")
+    plt.xscale("log")
+    plt.legend()
+    plt.grid()
+    fig.tight_layout()
+    plt.show()
+
+
+if __name__ == "__main__":
+
+    plot_escape_times()
+
+    1
