@@ -458,7 +458,7 @@ def test_speed_profile():
 
 gamma = 5/3
 alpha = 6*(gamma-1)/(gamma+1)
-weaver = False
+weaver = True
 
 if __name__ == "__main__":
 

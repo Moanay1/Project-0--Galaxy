@@ -51,24 +51,23 @@ def give_cluster_mass() -> np.ndarray:
 def test_cluster_mass() -> None:
     R = np.geomspace(1e3*cgs.sun_mass, 1e5*cgs.sun_mass, 1000)
     arr = []
-    for _ in tqdm(range(1000)):
-        arr.append(give_random_value(make_cluster_IMF, 1e3*cgs.sun_mass, 1e5*cgs.sun_mass))
+    for _ in tqdm(range(10000)):
+        arr.append(give_random_value(make_cluster_IMF, 1e3*cgs.sun_mass, 1e5*cgs.sun_mass)/cgs.sun_mass)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(R,
-             make_cluster_IMF(R)/inte.quad(make_cluster_IMF, 1e3*cgs.sun_mass, 1e5*cgs.sun_mass)[0])
+    plt.plot(R/cgs.sun_mass,
+             make_cluster_IMF(R)*cgs.sun_mass/inte.quad(make_cluster_IMF, 1e3*cgs.sun_mass, 1e5*cgs.sun_mass)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel("$M_\mathrm{cl}$ [M$_\odot$]")
     plt.ylabel("PDF")
     plt.xscale("log")
     plt.yscale("log")
-    plt.xlim(np.min(R), np.max(R))
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/f(M_cl).pdf")
+    plt.savefig(r"Project Summary/Images/f(M_cl).pdf")
     plt.show()
 
 
@@ -77,14 +76,14 @@ def pick_IMF(m: np.ndarray) -> np.ndarray:
 
 
 def pick_IMF_exp(m: np.ndarray) -> np.ndarray:
-    return m**(-2.3)*np.exp(-0.35/m)
+    return 1*m**(-2.3)*np.exp(-0.35/m)
 
 
 def test_IMF() -> None:
     M = np.linspace(2, 300)
     arr = []
     for _ in tqdm(range(1000)):
-        arr.append(give_random_value(pick_IMF, 2, 150))
+        arr.append(give_random_value(pick_IMF_exp, 2, 150))
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(M, bins=50)
@@ -111,7 +110,7 @@ def make_stellar_population(M_cluster:float=1e4*cgs.sun_mass):
     M_arr = np.array([])
 
     while np.sum(M_arr) < M_cluster:
-        M_arr = np.append(M_arr, give_random_value(pick_IMF, 2, 150)*cgs.sun_mass)
+        M_arr = np.append(M_arr, give_random_value(pick_IMF_exp, 2, 150)*cgs.sun_mass)
 
     return M_arr
 
@@ -146,7 +145,18 @@ def pick_random_massive_star(stars):
 def give_superbubble_radius(n_ISM:float=100/cgs.cm3,
                             luminosity:float=1e37*cgs.erg/cgs.sec,
                             time:float=10*cgs.Myr) -> float:
-    return 174 * (n_ISM)**(-1/5) * (luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
+    """The 22% rescaling parameter comes from Vieu 2022, to match the 
+    observational proofs.
+
+    Args:
+        n_ISM (float, optional): ISM density. Defaults to 100/cgs.cm3.
+        luminosity (float, optional): total cluster density. Defaults to 1e37*cgs.erg/cgs.sec.
+        time (float, optional): age of the cluster. Defaults to 10*cgs.Myr.
+
+    Returns:
+        float: radius of the superbubble
+    """
+    return 0.22 * 174 * (n_ISM)**(-1/5) * (luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
 
 
 class Superbubble:
@@ -159,8 +169,8 @@ class Superbubble:
                                               1e5*cgs.sun_mass)
         self.star_masses = make_stellar_population(self.cluster_mass)
         self.stars_number = len(self.star_masses)
-        self.mean_luminosity = 1.6e36 *cgs.erg / cgs.sec
-        self.total_luminosity = self.stars_number*self.mean_luminosity
+        self.stars_luminosity = bubble.give_wind_luminosity_type(self.star_masses/cgs.sun_mass)
+        self.total_luminosity = np.sum(self.stars_luminosity)
 
     def explode_star(self):
 
@@ -260,10 +270,11 @@ def plot_escape_time_distribution():
 
 if __name__ == "__main__":
 
-    # test_cluster_mass()
+    # test_cluster_mass()   
     # test_IMF()
     # test_stellar_population()
 
     plot_escape_time_distribution()
+
 
     1

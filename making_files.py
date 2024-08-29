@@ -524,48 +524,50 @@ def plot_bow_shock_time_distribution():
     #                      alpha=0.2, color=colors[i],
     #                      label=labels2[i])
         
-    proportion_arr = np.array([])
+    # proportion_arr = np.array([])
 
-    system = cradle.PSR_SNR_System()
-    system.evolve()
+    # system = cradle.PSR_SNR_System()
+    # system.evolve()
     
-    for time in tqdm(t_arr*cgs.year):
-        proportion_arr = np.append(proportion_arr,
-                                   system.give_pulsar_population_inside(time, 1000))
+    # for time in tqdm(t_arr*cgs.year):
+    #     proportion_arr = np.append(proportion_arr,
+    #                                system.give_pulsar_population_inside(time, 1000))
 
-    ax1.plot(t_arr/1e3, proportion_arr, color="black", label="Fixed CSM")
+    # ax1.plot(t_arr/1e3, proportion_arr, color="black", label="Fixed CSM")
 
-    proportion_arr = np.array([])
-    for time in tqdm(t_arr*cgs.year):
-        proportion_arr = np.append(proportion_arr,
-                                   cradle.evaluate_several_systems(n=100, t=time)[0])
+    # proportion_arr = np.array([])
+    # for time in tqdm(t_arr*cgs.year):
+    #     proportion_arr = np.append(proportion_arr,
+    #                                cradle.evaluate_several_systems(n=100, t=time)[0])
         
-    ax1.plot(t_arr/1e3, proportion_arr, color="blue", label="Varying CSM")
+    # ax1.plot(t_arr/1e3, proportion_arr, color="blue", label="Varying CSM")
     
-    ax1.axvline(x=342, linestyle="--", color="red",
-                label=r"Geminga: 342 kyr")
-    ax1.axvline(x=110, linestyle="-.", color="red",
-                label=r"Monogem: 110 kyr")
+    # ax1.axvline(x=342, linestyle="--", color="red",
+    #             label=r"Geminga: 342 kyr")
+    # ax1.axvline(x=110, linestyle="-.", color="red",
+    #             label=r"B0656+14: 110 kyr")
     
-    ax1.set_xscale("log")
-    ax1.set_xlabel("Pulsar age [kyr]")
-    ax1.set_ylabel("Pulsars in SNR [%]")
-    ax1.legend(fontsize=9)
-    ax1.grid()
+    # ax1.set_xscale("log")
+    # ax1.set_xlabel("Pulsar age [kyr]")
+    # ax1.set_ylabel("Pulsars in SNR [%]")
+    # ax1.legend(fontsize=9)
+    # ax1.grid()
 
-    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = 10000)
+    systems_number = 10000
 
     file = open("Escape Times/ISM.csv", "w")
 
-    for i in range(len(t_bs_arr)):
+    t_bs_arr = zeroordergalaxy.give_bow_shock_time(n = systems_number)
+
+    for i in tqdm(range(systems_number)):
         file.write(f"{t_bs_arr[i]}\n")
 
-    _, bins = np.histogram(t_bs_arr, bins=500)
+    _, bins = np.histogram(t_bs_arr, bins=int(systems_number/20))
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     ax2.hist(t_bs_arr, bins=logbins, histtype="step", label="Model ISM")
 
-    systems_number = 10000
+    
     escape_times = np.array([])
 
 
@@ -576,7 +578,7 @@ def plot_bow_shock_time_distribution():
         file.write(f"{escape_time[0]}\n")
         escape_times = np.append(escape_times, escape_time)
 
-    _, bins = np.histogram(escape_times, bins=500)
+    _, bins = np.histogram(escape_times, bins=int(systems_number/20))
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     ax2.hist(escape_times, bins=logbins, histtype="step", label="Model CSM")

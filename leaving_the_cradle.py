@@ -190,32 +190,72 @@ def test_sound_speed():
     plt.show()
 
 
+def shell_density(r_b:float=25*cgs.pc,
+                  rho_bubble:float = 1e-2*cgs.proton_mass,
+                  shell_width:float = 1*cgs.pc,
+                  ism_density:float=1*cgs.proton_mass) -> np.ndarray:
+    
+    total_mass = 4*np.pi/3 * ism_density * (r_b**3)
+
+    swept_mass = 4*np.pi/3 * rho_bubble * (r_b**3)
+    
+    shell_volume = 4*np.pi/3 * ((r_b + shell_width)**3 - r_b**3)
+
+    return (total_mass - swept_mass)/shell_volume, (total_mass - swept_mass), \
+            total_mass
+
+
+def test_shell_density():
+
+    r_arr = np.geomspace(3, 100, 100)*cgs.pc
+
+    s_arr = shell_density(r_b=r_arr)[0]
+
+    fig = plt.figure()
+    plt.plot(r_arr/cgs.pc, s_arr/cgs.proton_mass)
+    
+
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Bubble radius [pc]")
+    plt.ylabel("Shell number density [cm$^{-3}$]")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/aaaa.png")
+    plt.show()
+
+
 class PSR_SNR_System:
     def __init__(self,
                  E_SN = 1e51*cgs.erg,
                  n_ISM = 1,
-                 m_ej = 15*cgs.sun_mass, 
+                 m_ej = 10*cgs.sun_mass, 
                  mass_loss = 1e-5*cgs.sun_mass/cgs.year, 
-                 wind_speed = 3e6*cgs.cm/cgs.second, n = 500,
+                 wind_speed = 1e6*cgs.cm/cgs.second,
+                 n_ = 500,
                  wind_radius = 1.5*cgs.pc,
                  bubble_radius = 25*cgs.pc,
                  bubble_density = 0.01*cgs.proton_mass,
                  weaver:bool = False, model_shell:bool = True) -> None:
-        
+
         self.supernova_energy = E_SN
         self.ism_density = n_ISM*cgs.proton_mass
         self.bubble_density = bubble_density
         self.wind_radius = wind_radius
         self.bubble_radius = bubble_radius
         self.shell_width = 1*cgs.pc
-        self.shell_density = 17*cgs.proton_mass
         self.shell_radius = self.bubble_radius + self.shell_width
         self.ejected_mass = m_ej
         self.stellar_mass_loss = mass_loss
         self.wind_speed = wind_speed
 
-        self.integration_points = n
-        self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=n)
+        self.shell_density = shell_density(r_b=self.bubble_radius,
+                                           rho_bubble=self.bubble_density,
+                                           shell_width=self.shell_width,
+                                           ism_density=self.ism_density)[0]
+
+        self.integration_points = n_
+        self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
         self.radius_arr = self.radius_arr_ref
 
         self.weaver = weaver
@@ -226,12 +266,14 @@ class PSR_SNR_System:
 
         self.temperature = temperature_profile(self.radius_arr,
                                                self.wind_radius,
-                                               self.bubble_radius)
+                                               self.bubble_radius,
+                                               self.shell_width)
         self.density = density_profile(self.radius_arr,
                                        self.wind_radius,
                                        self.bubble_radius,
                                        self.ism_density,
-                                       self.bubble_density)
+                                       self.bubble_density,
+                                       self.shell_width)
         self.coolingtime = cooling_time(self.temperature,
                                         self.density)
         self.soundspeed = sound_speed(self.temperature)
@@ -281,7 +323,6 @@ class PSR_SNR_System:
                                                                                            E=self.supernova_energy,
                                                                                            M=self.ejected_mass),
                                              0.001, self.radius_arr[0])[0]
-                
 
         self.time_arr = np.array([inte.simpson(1/self.speed_arr[:i], self.radius_arr[:i])
                                   for i in range(2, self.integration_points)]) + integration_constant
@@ -472,7 +513,7 @@ def evaluate_several_systems(n=1000, t=100e3*cgs.year):
     escape_times = np.array([])
 
     for _ in range(n):
-        M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
         result = evaluate_one_system(M, t)
         proportion_arr = np.append(proportion_arr, result[0])
         escape_times = np.append(escape_times, result[1])
@@ -481,6 +522,123 @@ def evaluate_several_systems(n=1000, t=100e3*cgs.year):
 
     return proportion, escape_times
 
+
+def plot_bubble_radius_distribution():
+
+    n = 10000
+
+    bubble_radius = []
+
+    for _ in tqdm(range(n)):
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
+        star = bubble.Star(M)
+        bubble_radius.append(star.bubble_radius/cgs.pc)
+        
+    bubble_radius = np.array(bubble_radius)
+
+
+    fig = plt.figure()
+    plt.hist(bubble_radius, histtype="step", bins=50)
+    plt.xlabel("Bubble Radius [pc]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Bubble Radius.png")
+    plt.show()
+
+
+def plot_mass_loss_distribution():
+
+    n = 10000
+
+    mass_loss = []
+
+    for _ in tqdm(range(n)):
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
+        star = bubble.Star(M)
+        mass_loss.append(star.total_mass_lost/cgs.sun_mass)
+        
+    mass_loss = np.array(mass_loss)
+
+    _, bins = np.histogram(mass_loss, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+
+    fig = plt.figure()
+    plt.hist(mass_loss, histtype="step", bins=logbins)
+    plt.xscale("log")
+    plt.xlabel("Mass Loss [M$_\odot$]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Mass Loss.png")
+    plt.show()
+
+
+def plot_bubble_mass_distribution():
+
+    n = 10000
+
+    ratio = []
+
+    for _ in tqdm(range(n)):
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
+        star = bubble.Star(M)
+        shell_mass = shell_density(star.bubble_radius,
+                                   star.bubble_density,
+                                   1*cgs.pc,
+                                   1*cgs.proton_mass)[1]
+        swept_mass = csm.mass_bubble_region(star.bubble_radius,
+                                            10*cgs.sun_mass,
+                                            star.mass_loss,
+                                            star.wind_speed,
+                                            star.wind_radius,
+                                            star.bubble_radius,
+                                            star.bubble_density)
+        
+        ratio.append(shell_mass/swept_mass)
+        
+    ratio = np.array(ratio)
+
+    _, bins = np.histogram(ratio, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(ratio, histtype="step", bins=logbins, label="")
+    plt.xscale("log")
+    plt.xlabel("Shell mass/SNR swept mass")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Shell mass ratio.png")
+    plt.show()
+
+
+def plot_wind_power_distribution():
+
+    n = 10000
+
+    wind_power = []
+
+    for _ in tqdm(range(n)):
+        M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
+        star = bubble.Star(M)
+        wind_power.append(star.wind_kinetic_power)
+        
+    wind_power = np.array(wind_power)
+
+    _, bins = np.histogram(wind_power, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(wind_power, histtype="step", bins=logbins)
+    plt.xscale("log")
+    plt.xlabel("Wind Power [erg/s]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Wind power.png")
+    plt.show()
 
 
 def test_integration_number_points(plot_evolution:bool=True):
@@ -706,17 +864,21 @@ if __name__ == "__main__":
     # convergence_radius()
     # test_density_temperature_profile()
     # test_sound_speed()
+    # test_shell_density()
+    # plot_bubble_radius_distribution()
+    plot_mass_loss_distribution()
+    # plot_bubble_mass_distribution()
+    # plot_wind_power_distribution()
 
     # final_system_evolution(n=1000)
 
-    plot_comparison_different_models(n=500)
+    # plot_comparison_different_models(n=500)
     
     # plot_escape_time_distribution()
 
     # plot_is_pulsar_inside()
 
     # test_integration_number_points()
-
 
     # print(evaluate_several_systems(t=100*cgs.kyr))
 

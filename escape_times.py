@@ -5,16 +5,21 @@ import matplotlib.pyplot as plt
 def plot_escape_times():
 
     models = ["ISM", "CSM", "Superbubble"]
+    total_data = np.array([])
 
     fig = plt.figure()
 
     for model in models:
         data = np.genfromtxt(f"Escape Times/{model}.csv")
+        total_data = np.append(total_data, data)
 
-        _, bins = np.histogram(data, bins=50)
-        logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    _, bins = np.histogram(total_data, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-        plt.hist(data, bins=logbins, histtype="step", label=f"{model}")
+    for model in models:
+        data = np.genfromtxt(f"Escape Times/{model}.csv")
+
+        plt.hist(data, bins=logbins, histtype="step", linewidth=2, label=f"{model}")
 
     plt.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
@@ -27,6 +32,7 @@ def plot_escape_times():
     plt.legend()
     plt.grid()
     fig.tight_layout()
+    plt.savefig("Project Summary/Images/all escape times.pdf")
     plt.show()
 
 

@@ -328,20 +328,20 @@ def test_ST_radius() -> None:
     plt.xlim(np.min(t), np.max(t))
     fig.tight_layout()
     plt.savefig(r"Project Summary/Images/R(t)_ST.pdf")
-    # plt.show()
+    plt.show()
 
 
 def test_E_SN() -> None:
     z = np.logspace(49, 52, 1000)  # erg
-    arr = give_E_SN(1000)
+    arr = give_E_SN(10000)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, SN.make_lognormal(z, 1e51, 3.5)/inte.quad(
-    lambda x: SN.make_lognormal(x, 1e51, 3.5), 1e49, 1e52)[0])
+    plt.plot(z, SN.make_lognormal(z, 2.7e50, 3.5)/inte.quad(
+    lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e49, 1e52)[0])
     plt.axvline(x=1e51, color="black", linestyle="--", label="Usual value")
     plt.hist(arr, histtype="step", density=True, bins=logbins)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
@@ -351,21 +351,21 @@ def test_E_SN() -> None:
     plt.grid()
     plt.legend(fontsize=15)
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
+    plt.savefig(r"Project Summary/Images/f(E_SN).pdf")
     plt.show()
 
 
 def test_n_ISM() -> None:
     z = np.logspace(-3, 1, 1000)  # cm-3
-    arr = give_n_ISM(1000)
+    arr = give_n_ISM(10000)
 
     # Uniform histogram in log x-scale
     _, bins = np.histogram(arr, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.plot(z, SN.make_lognormal(z, 1, 5.1)/inte.quad(
-        lambda x: SN.make_lognormal(x, 1, 5.1), 1e-4, 1e1)[0])
+    plt.plot(z, SN.make_lognormal(z, 0.069, 5.1)/inte.quad(
+        lambda x: SN.make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0])
     plt.axvline(x=1, color="black", linestyle="--", label="Usual value")
     plt.hist(arr, histtype="step", bins=logbins, density=True)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
@@ -375,7 +375,7 @@ def test_n_ISM() -> None:
     plt.grid()
     plt.legend(fontsize=15)
     fig.tight_layout()
-    # plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
+    plt.savefig(r"Project Summary/Images/f(n_ISM).pdf")
     plt.show()
 
 
@@ -622,7 +622,7 @@ if __name__ == "__main__":
     # TESTS
 
     # test_z()
-    # test_ST_radius()
+    test_ST_radius()
     # test_density_profile()
     # test_initial_period()
     # test_kick_velocity()
@@ -635,6 +635,6 @@ if __name__ == "__main__":
 
     # create_galactic_coordinates(1e4)
 
-    create_file_zero()
+    # create_file_zero()
 
     1

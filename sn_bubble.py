@@ -114,14 +114,10 @@ def give_RSG_time(M_init: np.ndarray) -> np.ndarray:
     return t
 
 
-def give_WR_time(M_init: np.ndarray, model="Zakhozhay") -> np.ndarray:
-    """Choose from "Seo" and "Zakhozhay" """
+def give_WR_time(M_init: np.ndarray) -> np.ndarray:
 
-    if model == "Seo":  # Seo et al 2018
-        t = 10**(7.91 - 0.77*np.log10(M_init))
-    if model == "Zakhozhay":  # Zakhozhay 2013
-        t = 10**(9.96 - 3.32*np.log10(M_init) + 0.63*np.log10(M_init) **
-                 2 + 0.19*np.log10(M_init)**3 - 0.057*np.log10(M_init)**4)
+    t = 10**(5.51 - 0.042*np.log10(M_init))
+
     return t
 
 
@@ -172,10 +168,23 @@ def give_wind_luminosity_WC(M: np.ndarray) -> np.ndarray:
 
 def give_wind_luminosity_type(M: np.ndarray) -> np.ndarray:
 
-    if M < 16:
-        return give_wind_luminosity_B(M)
+    luminosity = np.array([])
+
+    if type(M) in [float]:
+        if M < 16:
+            luminosity = np.append(luminosity, give_wind_luminosity_B(M))
+        else:
+            luminosity = np.append(luminosity, give_wind_luminosity_O(M))
+        return luminosity
+
     else:
-        return give_wind_luminosity_O(M)
+        for M_ in M:
+            if M_ < 16:
+                luminosity = np.append(luminosity, give_wind_luminosity_B(M_))
+            else:
+                luminosity = np.append(luminosity, give_wind_luminosity_O(M_))
+        
+        return luminosity
     
 
 
@@ -300,20 +309,30 @@ def give_bubble_radius(
     L_arr = np.array([])
     for M_ in M:
         if M_ > 16:
-            L_arr = np.append(L_arr, give_wind_luminosity_O(M_))  # erg.s-1
+            wind_speed = give_wind_speed_O(M_) * cgs.km
         else:
-            L_arr = np.append(L_arr, give_wind_luminosity_B(M_))
+            wind_speed = give_wind_speed_B(M_) * cgs.km
+
+        mass_loss = give_mass_loss_MS(M_) * cgs.sun_mass / cgs.year
+        L_arr = np.append(L_arr, give_wind_kinetic_power(wind_speed, mass_loss))  # erg.s-1
     t_MS = give_MS_time(M)  # yr
-    r_b = 28 * (L_arr/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
+    r_b = 0.22 * 28 * (L_arr/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
     return r_b
 
 
-def give_bubble_radius_type(M, n_ISM=1):
+def give_wind_kinetic_power(wind_speed, mass_loss):
+    return mass_loss * wind_speed**2 / 2
 
-    L = give_wind_luminosity_type(M)
+
+def give_bubble_radius_type(M, n_ISM=1, typee="RSG"):
+
+    wind_speed = give_wind_speed_type(M, typee=typee) * cgs.km
+    mass_loss = give_mass_loss_MS(M) * cgs.sun_mass / cgs.year
+
+    L = give_wind_kinetic_power(wind_speed, mass_loss)
     
     t_MS = give_MS_time(M)  # yr
-    r_b = 28 * (L/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
+    r_b = 0.22 * 28 * (L/1e36)**(1/5) * (n_ISM)**(-1/5) * (t_MS/1e6)**(3/5)  # pc
     return r_b
 
 
@@ -369,7 +388,7 @@ def give_wind_radius(
 
 def give_wind_radius_type(M, typee, n_ISM=1):
 
-    mass_loss = give_mass_loss_type(M, typee)
+    mass_loss = give_mass_loss_MS(M)
     wind_speed = give_wind_speed_type(M, typee)
     luminosity = give_wind_luminosity_type(M)
 
@@ -1027,6 +1046,48 @@ def plot_characteristic_time_scales():
     plt.show()
 
 
+def give_total_mass_lost(M = 8,
+                         postMS_type = "RSG"):
+    
+    MS_time = give_MS_time(M)
+    MS_mass_loss = give_mass_loss_MS(M) * cgs.sun_mass
+
+    if postMS_type == "RSG":
+        postMS_time = give_RSG_time(M)
+        postMS_mass_loss = give_mass_loss_RSG(M) * cgs.sun_mass
+    elif postMS_type in ["WC", "WN"]:
+        postMS_time = give_WR_time(M)
+        if postMS_type == "WC":
+            postMS_mass_loss = give_mass_loss_WC(M) * cgs.sun_mass
+        if postMS_type == "WN":
+            postMS_mass_loss = give_mass_loss_WN(M) * cgs.sun_mass
+
+    result = MS_time * MS_mass_loss + postMS_time * postMS_mass_loss
+    return result
+
+
+def plot_ejected_mass_distribution():
+
+    n = 10000
+
+    ejected_mass = []
+
+    for _ in tqdm(range(n)):
+        M = give_random_value(pick_IMF, 8, 120)
+        star = Star(M)
+        ejected_mass.append(star.ejected_mass/cgs.sun_mass)
+        
+    ejected_mass = np.array(ejected_mass)
+
+    fig = plt.figure()
+    plt.hist(ejected_mass, histtype="step", bins=500, label="")
+    plt.xlabel("Ejected Mass [M$_\odot$]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Ejected Mass.png")
+    plt.show()
+
 class Star:
     def __init__(self, M = 8, n_ISM:float=1):
 
@@ -1036,12 +1097,19 @@ class Star:
         self.MS_type = "O" if self.init_mass > 16 else "B"
         self.postMS_type = "RSG" if self.init_mass < 40 \
                                  else random.choice(["WC", "WN"])
+        
+        self.MS_time = give_MS_time(self.init_mass) * cgs.year
 
-        self.mass_loss = give_mass_loss_type(self.init_mass, self.postMS_type) * cgs.sun_mass / cgs.year
-        self.wind_speed = give_wind_speed_type(self.init_mass, self.postMS_type) * cgs.km
-        self.wind_radius = give_wind_radius_type(self.init_mass, self.postMS_type, self.ism_density) * cgs.pc
-        self.bubble_radius = give_bubble_radius_type(self.init_mass, self.ism_density) * cgs.pc
-        self.bubble_density = give_bubble_density_type(self.init_mass, self.ism_density) * cgs.proton_mass
+        self.total_mass_lost = give_total_mass_lost(self.init_mass, self.postMS_type)
+        self.mass_loss = give_mass_loss_MS(self.init_mass) * cgs.sun_mass / cgs.year
+        self.ejected_mass = self.init_mass*cgs.sun_mass - self.total_mass_lost - cgs.pulsar_mass
+        self.wind_speed = give_wind_speed_type(self.init_mass, self.MS_type) * cgs.km
+        self.wind_speed_postMS = give_wind_speed_type(self.init_mass, self.postMS_type) * cgs.km
+        self.wind_radius = give_wind_radius_type(np.array([self.init_mass]), self.MS_type, self.ism_density)[0] * cgs.pc
+        self.bubble_radius = give_bubble_radius_type(np.array([self.init_mass]), self.ism_density, self.MS_type)[0] * cgs.pc
+        self.bubble_density = give_bubble_density_type(np.array([self.init_mass]), self.ism_density)[0] * cgs.proton_mass
+
+        self.wind_kinetic_power = self.mass_loss * self.wind_speed**2 / 2
 
 
 
@@ -1058,7 +1126,7 @@ AGE_GEMINGA = 342e3 # yr
 if __name__ == "__main__":
     # TESTS AND PLOTS
 
-    test_IMF()
+    # test_IMF()
     # plot_MS_time()
     # plot_wind_luminosity()
     # plot_wind_speed()
@@ -1077,7 +1145,8 @@ if __name__ == "__main__":
     # plot_SN_radius_extreme_cases()
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
-    # stars = Stars(1000, t=1e7)
-    # print(stars.type)
+
+    plot_ejected_mass_distribution()
+
 
     1
