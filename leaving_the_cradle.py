@@ -67,7 +67,7 @@ def density_profile(r:np.ndarray,
                     r_b:float = 25*cgs.pc,
                     number_density:float = 1/cgs.cm3,
                     n_bubble:float = 0.01/cgs.cm3,
-                    r_shell:float = 0.3*cgs.pc
+                    r_shell:float = 1*cgs.pc
                     ):
     
     density_arr = []
@@ -91,7 +91,7 @@ def density_profile(r:np.ndarray,
 def temperature_profile(r:np.ndarray,
                         r_w:float = 1.5*cgs.pc,
                         r_b:float = 25*cgs.pc,
-                        r_shell:float = 0.3*cgs.pc
+                        r_shell:float = 1*cgs.pc
                         ):
     
     temperature_arr = []
@@ -113,6 +113,8 @@ def temperature_profile(r:np.ndarray,
 
 def test_density_temperature_profile():
 
+    n_ISM = 10
+
     r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 1000)
 
     time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
@@ -122,7 +124,7 @@ def test_density_temperature_profile():
 
     color = 'tab:red'
     ax1.set_ylabel(r"Density [cm$^{-3}$]", color=color)
-    ax1.plot(r_arr/cgs.pc, density_profile(r_arr), color=color)
+    ax1.plot(r_arr/cgs.pc, density_profile(r_arr, number_density=n_ISM), color=color)
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.set_xscale("log")
     ax1.set_yscale("log")
@@ -253,6 +255,18 @@ class PSR_SNR_System:
                                            rho_bubble=self.bubble_density,
                                            shell_width=self.shell_width,
                                            ism_density=self.ism_density)[0]
+        
+        self.mass_ratio = mass_ratio(self.bubble_radius,
+                                     self.bubble_density,
+                                     self.shell_width,
+                                     self.ism_density,
+                                     self.ejected_mass,
+                                     self.stellar_mass_loss,
+                                     self.wind_speed,
+                                     self.wind_radius)
+        
+        if self.mass_ratio > 1:
+            self.shell_density = self.ism_density
 
         self.integration_points = n_
         self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
@@ -385,7 +399,6 @@ class PSR_SNR_System:
         else:
             self.radiative_phase_outside()
         
-
 
     def radiative_phase_inside(self):
 
@@ -523,56 +536,32 @@ def evaluate_several_systems(n=1000, t=100e3*cgs.year):
     return proportion, escape_times
 
 
-def plot_bubble_radius_distribution():
+def mass_ratio(bubble_radius = 10*cgs.pc,
+               bubble_density = 0.01*cgs.proton_mass/cgs.cm3,
+               shell_width = 1*cgs.pc,
+               ISM_density = 1*cgs.proton_mass/cgs.cm3,
+               ejecta_mass = 10*cgs.sun_mass,
+               mass_loss = 1e-5 * cgs.sun_mass / cgs.year,
+               wind_speed = 1000*cgs.km/cgs.sec,
+               wind_radius = 1*cgs.pc):
+    """SNR Mass/Shell Mass"""
 
-    n = 10000
+    shell_mass = shell_density(bubble_radius,
+                               bubble_density,
+                               shell_width,
+                               ISM_density)[1]
+    swept_mass = csm.mass_bubble_region(bubble_radius,
+                                        ejecta_mass,
+                                        mass_loss,
+                                        wind_speed,
+                                        wind_radius,
+                                        bubble_radius,
+                                        bubble_density)
+    
+    ratio = swept_mass/shell_mass
 
-    bubble_radius = []
+    return ratio
 
-    for _ in tqdm(range(n)):
-        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
-        star = bubble.Star(M)
-        bubble_radius.append(star.bubble_radius/cgs.pc)
-        
-    bubble_radius = np.array(bubble_radius)
-
-
-    fig = plt.figure()
-    plt.hist(bubble_radius, histtype="step", bins=50)
-    plt.xlabel("Bubble Radius [pc]")
-    plt.ylabel("Stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Bubble Radius.png")
-    plt.show()
-
-
-def plot_mass_loss_distribution():
-
-    n = 10000
-
-    mass_loss = []
-
-    for _ in tqdm(range(n)):
-        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
-        star = bubble.Star(M)
-        mass_loss.append(star.total_mass_lost/cgs.sun_mass)
-        
-    mass_loss = np.array(mass_loss)
-
-    _, bins = np.histogram(mass_loss, bins=50)
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
-
-
-    fig = plt.figure()
-    plt.hist(mass_loss, histtype="step", bins=logbins)
-    plt.xscale("log")
-    plt.xlabel("Mass Loss [M$_\odot$]")
-    plt.ylabel("Stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Mass Loss.png")
-    plt.show()
 
 
 def plot_bubble_mass_distribution():
@@ -596,7 +585,7 @@ def plot_bubble_mass_distribution():
                                             star.bubble_radius,
                                             star.bubble_density)
         
-        ratio.append(shell_mass/swept_mass)
+        ratio.append(swept_mass/shell_mass)
         
     ratio = np.array(ratio)
 
@@ -606,7 +595,7 @@ def plot_bubble_mass_distribution():
     fig = plt.figure()
     plt.hist(ratio, histtype="step", bins=logbins, label="")
     plt.xscale("log")
-    plt.xlabel("Shell mass/SNR swept mass")
+    plt.xlabel("SNR swept mass/Shell mass")
     plt.ylabel("Stars")
     plt.grid()
     fig.tight_layout()
@@ -697,7 +686,7 @@ def test_integration_number_points(plot_evolution:bool=True):
 
 def final_system_evolution(n=100):
 
-    system = PSR_SNR_System(n=n)
+    system = PSR_SNR_System(n_=n, n_ISM=10)
     system.associate_values()
     system.give_time()
 
@@ -715,7 +704,7 @@ def final_system_evolution(n=100):
 
     plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="With radiative")
 
-    system = PSR_SNR_System(n=n)
+    system = PSR_SNR_System(n_=n)
     system.evolve()
 
     plt.axhline(y=1.5, linestyle="--", alpha=0.5, linewidth=1,
@@ -862,7 +851,7 @@ def plot_is_pulsar_inside():
 if __name__ == "__main__":
 
     # convergence_radius()
-    # test_density_temperature_profile()
+    test_density_temperature_profile()
     # test_sound_speed()
     # test_shell_density()
     # plot_bubble_radius_distribution()
@@ -870,9 +859,9 @@ if __name__ == "__main__":
     # plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
-    # final_system_evolution(n=1000)
+    # final_system_evolution(n=500)
 
-    plot_comparison_different_models(n=500)
+    # plot_comparison_different_models(n=500)
     
     # plot_escape_time_distribution()
 

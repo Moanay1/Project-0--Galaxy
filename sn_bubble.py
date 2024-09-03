@@ -1066,6 +1066,31 @@ def give_total_mass_lost(M = 8,
     return result
 
 
+def give_total_mass_lost_MS(M = 8):
+    return 10**(2.36*np.log10(M) - 3.15) * cgs.sun_mass
+
+
+def give_total_mass_lost_RSG(M = 8):
+    return 10**(0.85*np.log10(M) - 0.24) * cgs.sun_mass
+
+
+def give_total_mass_lost_WR(M = 8):
+    return 10**(1.64*np.log10(M) - 1.57) * cgs.sun_mass
+
+
+def give_total_mass_lost_all_phases(M = 8):
+
+    total_mass = 0
+    total_mass += give_total_mass_lost_MS(M)
+
+    if M < 40:
+        total_mass += give_total_mass_lost_RSG(M)
+    else:
+        total_mass += give_total_mass_lost_WR(M)
+
+    return total_mass
+
+
 def plot_distributions():
 
     n = 10000
@@ -1100,7 +1125,7 @@ def plot_distributions():
     fig = plt.figure()
     plt.hist(mass_loss, histtype="step", bins=logbins, label="")
     plt.xscale("log")
-    plt.xlabel("Mass loss [M$_\odot$/yr]")
+    plt.xlabel("Mass loss [M$_\odot$/yr]")  
     plt.ylabel("Stars")
     plt.grid()
     fig.tight_layout()
@@ -1108,11 +1133,8 @@ def plot_distributions():
     plt.savefig("CSM_plots/Mass loss.png")
     plt.show()
 
-    _, bins = np.histogram(mass_loss, bins=50)
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
-
     fig = plt.figure()
-    plt.hist(wind_radius, histtype="step", bins=logbins, label="")
+    plt.hist(wind_radius, histtype="step", bins=500, label="")
     plt.xlabel("Wind radius [pc]")
     plt.ylabel("Stars")
     plt.grid()
@@ -1180,9 +1202,10 @@ class Star:
         
         self.MS_time = give_MS_time(self.init_mass) * cgs.year
 
-        self.total_mass_lost = give_total_mass_lost(self.init_mass, self.postMS_type)
+        # self.total_mass_lost = give_total_mass_lost(self.init_mass, self.postMS_type)
+        self.total_mass_lost = give_total_mass_lost_all_phases(self.init_mass)
         self.mass_loss = give_mass_loss_MS(self.init_mass) * cgs.sun_mass / cgs.year
-        self.ejected_mass = self.init_mass*cgs.sun_mass - self.total_mass_lost - cgs.pulsar_mass
+        self.ejected_mass = np.abs(self.init_mass*cgs.sun_mass - self.total_mass_lost - cgs.pulsar_mass)
         self.wind_speed = give_wind_speed_type(self.init_mass, self.MS_type) * cgs.km
         self.wind_speed_postMS = give_wind_speed_type(self.init_mass, self.postMS_type) * cgs.km
         self.wind_radius = give_wind_radius_type(np.array([self.init_mass]), self.MS_type, self.ism_density)[0] * cgs.pc
