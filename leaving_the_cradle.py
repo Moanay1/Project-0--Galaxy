@@ -738,7 +738,7 @@ def plot_comparison_different_models(n=500):
 
     m_ej = 5*cgs.sun_mass
 
-    system = PSR_SNR_System(n=n, m_ej=m_ej)
+    system = PSR_SNR_System(n_=n, m_ej=m_ej)
     system.model_shell = False
     system.give_time()
     system.associate_values()
@@ -866,13 +866,13 @@ if __name__ == "__main__":
     # test_sound_speed()
     # test_shell_density()
     # plot_bubble_radius_distribution()
-    plot_mass_loss_distribution()
+    # plot_mass_loss_distribution()
     # plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
     # final_system_evolution(n=1000)
 
-    # plot_comparison_different_models(n=500)
+    plot_comparison_different_models(n=500)
     
     # plot_escape_time_distribution()
 

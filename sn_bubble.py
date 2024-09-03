@@ -1066,27 +1066,107 @@ def give_total_mass_lost(M = 8,
     return result
 
 
-def plot_ejected_mass_distribution():
+def plot_distributions():
 
     n = 10000
 
+    bubble_density = []
     ejected_mass = []
+    wind_speed = []
+    bubble_radius = []
+    wind_radius = []
+    mass_loss = []
 
     for _ in tqdm(range(n)):
         M = give_random_value(pick_IMF, 8, 120)
         star = Star(M)
+        bubble_density.append(star.bubble_density/(cgs.proton_mass))
         ejected_mass.append(star.ejected_mass/cgs.sun_mass)
+        wind_speed.append(star.wind_speed/cgs.km)
+        bubble_radius.append(star.bubble_radius/(cgs.pc))
+        wind_radius.append(star.wind_radius/(cgs.pc))
+        mass_loss.append(star.mass_loss/(cgs.sun_mass/cgs.year))
         
+    mass_loss = np.array(mass_loss)
+    wind_radius = np.array(wind_radius)
+    bubble_radius = np.array(bubble_radius)
+    wind_speed = np.array(wind_speed)
     ejected_mass = np.array(ejected_mass)
+    bubble_density = np.array(bubble_density)
 
+    _, bins = np.histogram(mass_loss, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(mass_loss, histtype="step", bins=logbins, label="")
+    plt.xscale("log")
+    plt.xlabel("Mass loss [M$_\odot$/yr]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Mass loss.pdf")
+    plt.savefig("CSM_plots/Mass loss.png")
+    plt.show()
+
+    _, bins = np.histogram(mass_loss, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(wind_radius, histtype="step", bins=logbins, label="")
+    plt.xlabel("Wind radius [pc]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Wind radius.pdf")
+    plt.savefig("CSM_plots/Wind radius.png")
+    plt.show()
+    
+    fig = plt.figure()
+    plt.hist(bubble_radius, histtype="step", bins=500, label="")
+    plt.xlabel("Bubble radius [pc]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Bubble radius.pdf")
+    plt.savefig("CSM_plots/Bubble radius.png")
+    plt.show()
+    
+    fig = plt.figure()
+    plt.hist(wind_speed, histtype="step", bins=500, label="")
+    plt.xlabel("Wind Speed [km/s]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Wind Speed.pdf")
+    plt.savefig("CSM_plots/Wind Speed.png")
+    plt.show()
+    
     fig = plt.figure()
     plt.hist(ejected_mass, histtype="step", bins=500, label="")
     plt.xlabel("Ejected Mass [M$_\odot$]")
     plt.ylabel("Stars")
     plt.grid()
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/Ejected Mass.png")
+    plt.savefig("Project Summary/Images/Ejected Mass.pdf")
+    plt.savefig("CSM_plots/Ejected Mass.png")
     plt.show()
+
+    _, bins = np.histogram(bubble_density, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    
+    fig = plt.figure()
+    plt.hist(bubble_density, histtype="step", bins=logbins, label="")
+    plt.xscale("log")
+    plt.xlabel("Bubble density [cm$^{-3}$]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Bubble density.pdf")
+    plt.savefig("CSM_plots/Bubble density.png")
+    plt.show()
+
+
+
 
 class Star:
     def __init__(self, M = 8, n_ISM:float=1):
@@ -1146,7 +1226,7 @@ if __name__ == "__main__":
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
 
-    plot_ejected_mass_distribution()
+    plot_distributions()
 
 
     1
