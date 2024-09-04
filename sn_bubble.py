@@ -1091,6 +1091,16 @@ def give_total_mass_lost_all_phases(M = 8):
     return total_mass
 
 
+def give_wind_density(M = 8, typee = "RSG"):
+
+    mass_loss = give_mass_loss_type(M, typee) / (cgs.sun_mass/cgs.year)
+    wind_speed = give_wind_speed_type(M, typee) * cgs.km
+
+    wind_density = mass_loss/(4*np.pi *  wind_speed)/cgs.proton_mass
+
+    return wind_density
+
+
 def plot_distributions():
 
     n = 10000
@@ -1101,6 +1111,7 @@ def plot_distributions():
     bubble_radius = []
     wind_radius = []
     mass_loss = []
+    wind_density = []
 
     for _ in tqdm(range(n)):
         M = give_random_value(pick_IMF, 8, 120)
@@ -1111,6 +1122,7 @@ def plot_distributions():
         bubble_radius.append(star.bubble_radius/(cgs.pc))
         wind_radius.append(star.wind_radius/(cgs.pc))
         mass_loss.append(star.mass_loss/(cgs.sun_mass/cgs.year))
+        wind_density.append(star.wind_density/(star.wind_radius/cgs.pc)**2/cgs.proton_mass)
         
     mass_loss = np.array(mass_loss)
     wind_radius = np.array(wind_radius)
@@ -1118,6 +1130,7 @@ def plot_distributions():
     wind_speed = np.array(wind_speed)
     ejected_mass = np.array(ejected_mass)
     bubble_density = np.array(bubble_density)
+    wind_density = np.array(wind_density)
 
     _, bins = np.histogram(mass_loss, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
@@ -1187,6 +1200,20 @@ def plot_distributions():
     plt.savefig("CSM_plots/Bubble density.png")
     plt.show()
 
+    _, bins = np.histogram(wind_density, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    
+    fig = plt.figure()
+    plt.hist(wind_density, histtype="step", bins=logbins, label="")
+    plt.xscale("log")
+    plt.xlabel("Wind density [cm$^{-3}$]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Wind density.pdf")
+    plt.savefig("CSM_plots/Wind density.png")
+    plt.show()
+
 
 
 
@@ -1210,6 +1237,7 @@ class Star:
         self.wind_speed_postMS = give_wind_speed_type(self.init_mass, self.postMS_type) * cgs.km
         self.wind_radius = give_wind_radius_type(np.array([self.init_mass]), self.MS_type, self.ism_density)[0] * cgs.pc
         self.bubble_radius = give_bubble_radius_type(np.array([self.init_mass]), self.ism_density, self.MS_type)[0] * cgs.pc
+        self.wind_density =  give_wind_density(self.init_mass, self.postMS_type)
         self.bubble_density = give_bubble_density_type(np.array([self.init_mass]), self.ism_density)[0] * cgs.proton_mass
 
         self.wind_kinetic_power = self.mass_loss * self.wind_speed**2 / 2

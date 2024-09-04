@@ -65,6 +65,7 @@ def cooling_time(temperature:float = 8000, #K
 def density_profile(r:np.ndarray,
                     r_w:float = 1.5*cgs.pc,
                     r_b:float = 25*cgs.pc,
+                    characteristic_wind_density:float = 1e44, #pc2/cm3
                     number_density:float = 1/cgs.cm3,
                     n_bubble:float = 0.01/cgs.cm3,
                     r_shell:float = 1*cgs.pc
@@ -74,11 +75,10 @@ def density_profile(r:np.ndarray,
 
     for r_ in r:
         if r_ < r_w:
-            n = 1e-5*cgs.sun_mass/cgs.year/(4*np.pi * 1e6) \
-                /cgs.proton_mass * (r_)**(-2) # /cm3
+            n = characteristic_wind_density * (r_)**(-2) # /cm3
         elif r_ < r_b:
-            # n = n_bubble # Simple solution
-            n = n_bubble*((1 - r_/r_b) / (1 - r_w/r_b))**(-2/5) # From Weaver+1977
+            n = n_bubble # Simple solution
+            # n = n_bubble*((1 - r_/r_b) / (1 - r_w/r_b))**(-2/5) # From Weaver+1977
         elif r_ < r_b+r_shell:
             n = 17
         else:
@@ -100,8 +100,8 @@ def temperature_profile(r:np.ndarray,
         if r_ < r_w:
             T = 1e4*cgs.K
         elif r_ < r_b:
-            # T = 1e6*cgs.K # From Recchia+2022
-            T = 1e6*cgs.K*((1 - r_/r_b) / (1 - r_w/r_b))**(2/5) # From Weaver+1977
+            T = 1e6*cgs.K # From Recchia+2022
+            # T = 1e6*cgs.K*((1 - r_/r_b) / (1 - r_w/r_b))**(2/5) # From Weaver+1977
         elif r_ < r_b + r_shell:
             T = 8000*cgs.K
         else:
@@ -168,7 +168,8 @@ def sound_speed(temperature: float = 8000) -> float:
 
 def test_sound_speed():
 
-    system = PSR_SNR_System(n=10000, m_ej=5*cgs.sun_mass)
+    system = PSR_SNR_System(n_=10000, m_ej=5*cgs.sun_mass, model_shell=False)
+    system.associate_values()
     system.give_time()
     system.radiative_phase()
 
@@ -234,6 +235,7 @@ class PSR_SNR_System:
                  m_ej = 10*cgs.sun_mass, 
                  mass_loss = 1e-5*cgs.sun_mass/cgs.year, 
                  wind_speed = 1e6*cgs.cm/cgs.second,
+                 wind_density = 1e44, #cm2/cm3
                  n_ = 500,
                  wind_radius = 1.5*cgs.pc,
                  bubble_radius = 25*cgs.pc,
@@ -243,6 +245,7 @@ class PSR_SNR_System:
         self.supernova_energy = E_SN
         self.ism_density = n_ISM*cgs.proton_mass
         self.bubble_density = bubble_density
+        self.wind_density = wind_density
         self.wind_radius = wind_radius
         self.bubble_radius = bubble_radius
         self.shell_width = 1*cgs.pc
@@ -264,9 +267,6 @@ class PSR_SNR_System:
                                      self.stellar_mass_loss,
                                      self.wind_speed,
                                      self.wind_radius)
-        
-        if self.mass_ratio > 1:
-            self.shell_density = self.ism_density
 
         self.integration_points = n_
         self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
@@ -274,6 +274,9 @@ class PSR_SNR_System:
 
         self.weaver = weaver
         self.model_shell = model_shell
+
+        if self.mass_ratio > 1:
+            self.model_shell = False
 
 
     def associate_values(self):
@@ -283,6 +286,7 @@ class PSR_SNR_System:
                                                self.bubble_radius,
                                                self.shell_width)
         self.density = density_profile(self.radius_arr,
+                                       self.wind_density,
                                        self.wind_radius,
                                        self.bubble_radius,
                                        self.ism_density,
@@ -379,7 +383,7 @@ class PSR_SNR_System:
 
         self.merger_time = self.time_arr[i]
         self.merger_radius = self.radius_arr[i]
-        self.radius_arr[i:] = 0
+        self.radius_arr[i:] = self.bubble_radius
 
 
     def radiative_phase(self):
@@ -449,7 +453,8 @@ class PSR_SNR_System:
         # self.reinitialize()
         self.give_time()
         self.associate_values()
-        self.radiative_phase()
+        if self.mass_ratio < 1:
+            self.radiative_phase()
         self.merger()
         end = time.time()
         # print(f"Computation takes {(end-start)} s.")
@@ -507,6 +512,7 @@ def evaluate_one_system(M=8, t=100e3*cgs.year):
     star = bubble.Star(M)
 
     system = PSR_SNR_System(mass_loss=star.mass_loss,
+                            wind_density=star.wind_density,
                             wind_speed=star.wind_speed,
                             wind_radius=star.wind_radius,
                             bubble_radius=star.bubble_radius,
@@ -585,7 +591,7 @@ def plot_bubble_mass_distribution():
                                             star.bubble_radius,
                                             star.bubble_density)
         
-        ratio.append(swept_mass/shell_mass)
+        ratio.append(shell_mass/swept_mass)
         
     ratio = np.array(ratio)
 
@@ -595,7 +601,7 @@ def plot_bubble_mass_distribution():
     fig = plt.figure()
     plt.hist(ratio, histtype="step", bins=logbins, label="")
     plt.xscale("log")
-    plt.xlabel("SNR swept mass/Shell mass")
+    plt.xlabel("Shell mass/SNR swept mass")
     plt.ylabel("Stars")
     plt.grid()
     fig.tight_layout()
@@ -686,26 +692,27 @@ def test_integration_number_points(plot_evolution:bool=True):
 
 def final_system_evolution(n=100):
 
-    system = PSR_SNR_System(n_=n, n_ISM=10)
-    system.associate_values()
-    system.give_time()
+    system = PSR_SNR_System(n_=n, n_ISM=100)
+    system.evolve()
+
+
 
 
     fig = plt.figure()
 
     time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
-                            for r_ in system.radius_arr])
+                            for r_ in system.radius_arr_ref])
 
-    plt.plot(time_array/cgs.kyr, system.radius_arr/cgs.pc, color="black", linewidth=2, label = "Integration with QUADPACK")
+    plt.plot(time_array/cgs.kyr, system.radius_arr_ref/cgs.pc, color="black", linewidth=2, label = "Integration with QUADPACK")
 
     plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="Without radiative")
 
-    system.radiative_phase()
+    system = PSR_SNR_System(n_=n)
+    system.evolve()
 
     plt.plot(system.time_arr/cgs.kyr, system.radius_arr/cgs.pc, label="With radiative")
 
-    system = PSR_SNR_System(n_=n)
-    system.evolve()
+    
 
     plt.axhline(y=1.5, linestyle="--", alpha=0.5, linewidth=1,
                 color="black", label="Wind radius")
@@ -725,7 +732,7 @@ def final_system_evolution(n=100):
 
 def plot_comparison_different_models(n=500):
 
-    m_ej = 5*cgs.sun_mass
+    m_ej = 10*cgs.sun_mass
 
     system = PSR_SNR_System(n_=n, m_ej=m_ej)
     system.model_shell = False

@@ -33,6 +33,7 @@ def plot_escape_times():
     plt.grid()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/all escape times.pdf")
+    plt.savefig("CSM_plots/all escape times.png")
     plt.show()
 
 
