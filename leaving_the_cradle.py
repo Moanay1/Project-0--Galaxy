@@ -605,7 +605,7 @@ def plot_bubble_mass_distribution():
     plt.ylabel("Stars")
     plt.grid()
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/Shell mass ratio.png")
+    plt.savefig("Project Summary/Images/Shell mass ratio.pdf")
     plt.show()
 
 
@@ -858,12 +858,12 @@ def plot_is_pulsar_inside():
 if __name__ == "__main__":
 
     # convergence_radius()
-    test_density_temperature_profile()
+    # test_density_temperature_profile()
     # test_sound_speed()
     # test_shell_density()
     # plot_bubble_radius_distribution()
     # plot_mass_loss_distribution()
-    # plot_bubble_mass_distribution()
+    plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
     # final_system_evolution(n=500)

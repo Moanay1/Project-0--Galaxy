@@ -156,7 +156,7 @@ def give_superbubble_radius(n_ISM:float=100/cgs.cm3,
     Returns:
         float: radius of the superbubble
     """
-    return 0.22 * 174 * (n_ISM)**(-1/5) * (luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
+    return 174 * (n_ISM)**(-1/5) * (0.22 * luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
 
 
 class Superbubble:
@@ -268,13 +268,40 @@ def plot_escape_time_distribution():
     plt.show()
 
 
+def plot_SB_radius_distribution():
+    
+    radius = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        sb = Superbubble()
+        sb.explode_star()
+        radius.append(sb.bubble_radius_explosion/cgs.pc)
+
+    radius = np.array(radius)
+
+    fig = plt.figure()
+    plt.hist(radius, histtype="step", bins=50, label="")
+    plt.xlabel("Superbubble radius [pc]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Superbubble radius.pdf")
+    plt.savefig("CSM_plots/Superbubble radius.png")
+    plt.savefig("CSM_plots/Superbubble radius.pdf")
+    plt.show()
+
+
+
 if __name__ == "__main__":
 
     # test_cluster_mass()   
     # test_IMF()
     # test_stellar_population()
+    plot_SB_radius_distribution()
 
-    plot_escape_time_distribution()
+    # plot_escape_time_distribution()
 
 
     1

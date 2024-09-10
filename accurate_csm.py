@@ -462,8 +462,8 @@ weaver = True
 
 if __name__ == "__main__":
 
-    # test_density_profile()
+    test_density_profile()
     test_mass_profile()
-    # test_speed_profile()
+    test_speed_profile()
 
     1
