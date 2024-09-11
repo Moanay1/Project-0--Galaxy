@@ -204,7 +204,7 @@ def shell_density(r_b:float=25*cgs.pc,
     
     shell_volume = 4*np.pi/3 * ((r_b + shell_width)**3 - r_b**3)
 
-    return (total_mass - swept_mass)/shell_volume, (total_mass - swept_mass), \
+    return (total_mass)/shell_volume, (total_mass), \
             total_mass
 
 
@@ -274,9 +274,6 @@ class PSR_SNR_System:
 
         self.weaver = weaver
         self.model_shell = model_shell
-
-        if self.mass_ratio > 1:
-            self.model_shell = False
 
 
     def associate_values(self):
@@ -451,11 +448,14 @@ class PSR_SNR_System:
 
         start = time.time()
         # self.reinitialize()
-        self.give_time()
-        self.associate_values()
-        if self.mass_ratio < 1:
+        if self.mass_ratio < 10:
+            self.give_time()
+            self.associate_values()
             self.radiative_phase()
-        self.merger()
+            self.merger()
+        else:
+            self.time_arr = np.geomspace(1e1*cgs.year, 1e7*cgs.year, 10000)
+            self.radius_arr = np.zeros(np.shape(self.time_arr)) + self.bubble_radius
         end = time.time()
         # print(f"Computation takes {(end-start)} s.")
 
@@ -475,6 +475,7 @@ class PSR_SNR_System:
     def compare_pulsar(self):
 
         self.initialize_pulsar()
+        
         self.escape_time = pulsar.find_exact_crossing_point(self.radius_arr,
                                                             self.radius_pulsar,
                                                             self.time_arr)
@@ -564,7 +565,7 @@ def mass_ratio(bubble_radius = 10*cgs.pc,
                                         bubble_radius,
                                         bubble_density)
     
-    ratio = swept_mass/shell_mass
+    ratio = shell_mass/swept_mass
 
     return ratio
 
@@ -575,6 +576,7 @@ def plot_bubble_mass_distribution():
     n = 10000
 
     ratio = []
+    ratio2 = []
 
     for _ in tqdm(range(n)):
         M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
@@ -592,18 +594,25 @@ def plot_bubble_mass_distribution():
                                             star.bubble_density)
         
         ratio.append(shell_mass/swept_mass)
+        ratio2.append(shell_mass/star.ejected_mass)
         
     ratio = np.array(ratio)
+    ratio2 = np.array(ratio2)
 
     _, bins = np.histogram(ratio, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
+    _, bins = np.histogram(ratio2, bins=50)
+    logbins2 = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
     fig = plt.figure()
-    plt.hist(ratio, histtype="step", bins=logbins, label="")
+    plt.hist(ratio, histtype="step", bins=logbins, label="SNR mass = swept mass")
+    plt.hist(ratio2, histtype="step", bins=logbins2, label="SNR mass = ejected mass")
     plt.xscale("log")
-    plt.xlabel("Shell mass/SNR swept mass")
+    plt.xlabel("Shell mass/SNR mass")
     plt.ylabel("Stars")
     plt.grid()
+    plt.legend()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/Shell mass ratio.pdf")
     plt.show()
@@ -863,7 +872,7 @@ if __name__ == "__main__":
     # test_shell_density()
     # plot_bubble_radius_distribution()
     # plot_mass_loss_distribution()
-    plot_bubble_mass_distribution()
+    # plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
     # final_system_evolution(n=500)

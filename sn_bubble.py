@@ -1181,16 +1181,16 @@ def plot_distributions():
     # plt.savefig("CSM_plots/Wind Speed.pdf")
     # plt.show()
     
-    # fig = plt.figure()
-    # plt.hist(ejected_mass, histtype="step", bins=500, label="")
-    # plt.xlabel("Ejected Mass [M$_\odot$]")
-    # plt.ylabel("Stars")
-    # plt.grid()
-    # fig.tight_layout()
-    # plt.savefig("Project Summary/Images/Ejected Mass.pdf")
-    # plt.savefig("CSM_plots/Ejected Mass.png")
-    # plt.savefig("CSM_plots/Ejected Mass.pdf")
-    # plt.show()
+    fig = plt.figure()
+    plt.hist(ejected_mass, histtype="step", bins=50, label="")
+    plt.xlabel("SNR ejecta Mass [M$_\odot$]")
+    plt.ylabel("Stars")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/Ejected Mass.pdf")
+    plt.savefig("CSM_plots/Ejected Mass.png")
+    plt.savefig("CSM_plots/Ejected Mass.pdf")
+    plt.show()
 
     # _, bins = np.histogram(bubble_density, bins=50)
     # logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
@@ -1237,16 +1237,16 @@ def plot_distributions():
     # plt.savefig("CSM_plots/Luminosity.pdf")
     # plt.show()
 
-    fig = plt.figure()
-    plt.hist(MS_time, histtype="step", bins=50, label="")
-    plt.xlabel("MS time [Myr]")
-    plt.ylabel("Stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/MS time.pdf")
-    plt.savefig("CSM_plots/MS time.png")
-    plt.savefig("CSM_plots/MS time.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(MS_time, histtype="step", bins=50, label="")
+    # plt.xlabel("MS time [Myr]")
+    # plt.ylabel("Stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/MS time.pdf")
+    # plt.savefig("CSM_plots/MS time.png")
+    # plt.savefig("CSM_plots/MS time.pdf")
+    # plt.show()
 
 
 
@@ -1273,7 +1273,7 @@ class Star:
         self.bubble_radius = give_bubble_radius_type(np.array([self.init_mass]), self.ism_density, self.MS_type)[0] * cgs.pc
         self.wind_density =  give_wind_density(self.init_mass, self.postMS_type)
         self.bubble_density = give_bubble_density_type(np.array([self.init_mass]), self.ism_density)[0] * cgs.proton_mass
-        self.luminosity = give_wind_luminosity_type(self.init_mass)
+        self.luminosity = give_wind_luminosity_type([self.init_mass])
 
         self.wind_kinetic_power = self.mass_loss * self.wind_speed**2 / 2
 

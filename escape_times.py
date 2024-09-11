@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 def plot_escape_times():
 
     models = ["ISM", "CSM", "Superbubble"]
+    linewidths = [1, 2, 2]
     total_data = np.array([])
 
     fig = plt.figure()
@@ -16,10 +17,12 @@ def plot_escape_times():
     _, bins = np.histogram(total_data, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-    for model in models:
+    for i in range(len(models)):
+        model = models[i]
+        linewidth = linewidths[i]
         data = np.genfromtxt(f"Escape Times/{model}.csv")
 
-        plt.hist(data, bins=logbins, histtype="step", linewidth=2, label=f"{model}")
+        plt.hist(data, bins=logbins, histtype="step", linewidth=linewidth, label=f"{model}")
 
     plt.axvline(x=342, linestyle="--", color="red",
                 label=r"Geminga: 342 kyr")
