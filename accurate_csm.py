@@ -4,19 +4,19 @@ import scipy.special as sp
 from tqdm import tqdm
 import cgs
 
-plt.rcParams.update({'font.size': 12})
+plt.rcParams.update({'font.size': 17})
 plt.rcParams["font.family"] = "serif"
 
 
 def density_profile(r:np.ndarray,
-                    mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                    wind_speed:float = 3e6*cgs.cm/cgs.second,
-                    rho_bubble:float = 1e-2*cgs.proton_mass,
-                    rho_shell:float = 17*cgs.proton_mass,
+                    mass_loss:float = 1e-11*cgs.sun_mass/cgs.year,
+                    wind_speed:float = 1e8*cgs.cm/cgs.second,
+                    rho_bubble:float = 9e-5*cgs.proton_mass,
+                    rho_shell:float = 6*cgs.proton_mass,
                     rho_ISM:float = 1*cgs.proton_mass,
-                    rw:float = 1.5*cgs.pc,
-                    rb:float = 25*cgs.pc,
-                    r_shell:float = 0.3*cgs.pc) -> np.ndarray:
+                    rw:float = 0.003*cgs.pc,
+                    rb:float = 20*cgs.pc,
+                    r_shell:float = 1*cgs.pc) -> np.ndarray:
     global weaver
 
     rho = []
@@ -38,9 +38,9 @@ def density_profile(r:np.ndarray,
 
 
 def mass_wind_region(r:np.ndarray,
-                     m_ej:float = 5*cgs.sun_mass,
-                     mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                     wind_speed:float = 3e6*cgs.cm/cgs.second) -> np.ndarray:
+                     m_ej:float = 3*cgs.sun_mass,
+                     mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                     wind_speed:float = 1e8*cgs.cm/cgs.second) -> np.ndarray:
 
     masss = m_ej + mass_loss/wind_speed * r
 
@@ -48,12 +48,12 @@ def mass_wind_region(r:np.ndarray,
 
 
 def mass_bubble_region(r:np.ndarray,
-                       m_ej:float = 5*cgs.sun_mass,
-                       mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                       wind_speed:float = 3e6*cgs.cm/cgs.second,
-                       rw:float = 1.5*cgs.pc,
-                       rb:float = 25*cgs.pc,
-                       rho_bubble:float = 1e-2*cgs.proton_mass) -> np.ndarray:
+                       m_ej:float = 3*cgs.sun_mass,
+                       mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                       wind_speed:float = 1e8*cgs.cm/cgs.second,
+                       rw:float = 0.003*cgs.pc,
+                       rb:float = 20*cgs.pc,
+                       rho_bubble:float = 9e-5*cgs.proton_mass) -> np.ndarray:
     global weaver
     
     masss = mass_wind_region(rw, m_ej, mass_loss, wind_speed)
@@ -68,13 +68,13 @@ def mass_bubble_region(r:np.ndarray,
     return masss
 
 def mass_shell_region(r:np.ndarray,
-                      m_ej:float = 5*cgs.sun_mass,
-                      mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                      wind_speed:float = 3e6*cgs.cm/cgs.second,
-                      rw:float = 1.5*cgs.pc,
-                      rb:float = 25*cgs.pc,
-                      rho_bubble:float = 1e-2*cgs.proton_mass,
-                      rho_shell:float = 17*cgs.proton_mass) -> np.ndarray:
+                      m_ej:float = 3*cgs.sun_mass,
+                      mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                      wind_speed:float = 1e8*cgs.cm/cgs.second,
+                      rw:float = 0.003*cgs.pc,
+                      rb:float = 20*cgs.pc,
+                      rho_bubble:float = 9e-5*cgs.proton_mass,
+                      rho_shell:float = 6*cgs.proton_mass) -> np.ndarray:
     
     masss = mass_bubble_region(rb, 
                                m_ej, 
@@ -89,15 +89,15 @@ def mass_shell_region(r:np.ndarray,
 
 
 def mass_ISM_region(r:np.ndarray,
-                    m_ej:float = 5*cgs.sun_mass,
-                    mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                    wind_speed:float = 3e6*cgs.cm/cgs.second,
-                    rw:float = 1.5*cgs.pc,
-                    rb:float = 25*cgs.pc,
-                    rho_bubble:float = 1e-2*cgs.proton_mass,
-                    rho_shell:float = 17*cgs.proton_mass,
+                    m_ej:float = 3*cgs.sun_mass,
+                    mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                    wind_speed:float = 1e8*cgs.cm/cgs.second,
+                    rw:float = 0.003*cgs.pc,
+                    rb:float = 20*cgs.pc,
+                    rho_bubble:float = 9e-5*cgs.proton_mass,
+                    rho_shell:float = 6*cgs.proton_mass,
                     rho_ISM:float = 1*cgs.proton_mass,
-                    r_shell:float = 0.3*cgs.pc) -> np.ndarray:
+                    r_shell:float = 1*cgs.pc) -> np.ndarray:
     
     masss = mass_shell_region(r_shell+rb, 
                               m_ej, 
@@ -113,15 +113,15 @@ def mass_ISM_region(r:np.ndarray,
 
 
 def mass_profile(r:np.ndarray,
-                 m_ej:float = 5*cgs.sun_mass,
-                 mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                 wind_speed:float = 3e6*cgs.cm/cgs.second,
-                 rw:float = 1.5*cgs.pc,
-                 rb:float = 25*cgs.pc,
-                 rho_bubble:float = 1e-2*cgs.proton_mass,
-                 rho_shell:float = 17*cgs.proton_mass,
+                 m_ej:float = 3*cgs.sun_mass,
+                 mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                 wind_speed:float = 1e8*cgs.cm/cgs.second,
+                 rw:float = 0.003*cgs.pc,
+                 rb:float = 20*cgs.pc,
+                 rho_bubble:float = 9e-5*cgs.proton_mass,
+                 rho_shell:float = 6*cgs.proton_mass,
                  rho_ISM:float = 1*cgs.proton_mass,
-                 r_shell:float = 0.3*cgs.pc) -> np.ndarray:
+                 r_shell:float = 1*cgs.pc) -> np.ndarray:
     
     mass_array = []
     
@@ -167,9 +167,9 @@ def mass_profile(r:np.ndarray,
 
 
 def integral_wind_region(r:np.ndarray,
-                         m_ej:float = 5*cgs.sun_mass,
-                         mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                         wind_speed:float = 3e6*cgs.cm/cgs.second
+                         m_ej:float = 3*cgs.sun_mass,
+                         mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                         wind_speed:float = 1e8*cgs.cm/cgs.second
                          ) -> np.ndarray:
     
     I = m_ej * r**alpha/alpha + mass_loss/wind_speed*r**(alpha+1)/(alpha+1)
@@ -182,12 +182,12 @@ def beta_func(x, a, b):
 
 
 def integral_bubble_region(r:np.ndarray,
-                           m_ej:float = 5*cgs.sun_mass,
-                           mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                           wind_speed:float = 3e6*cgs.cm/cgs.second,
-                           rw:float = 1.5*cgs.pc,
-                           rb:float = 25*cgs.pc,
-                           rho_bubble:float = 1e-2*cgs.proton_mass,
+                           m_ej:float = 3*cgs.sun_mass,
+                           mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                           wind_speed:float = 1e8*cgs.cm/cgs.second,
+                           rw:float = 0.003*cgs.pc,
+                           rb:float = 20*cgs.pc,
+                           rho_bubble:float = 9e-5*cgs.proton_mass,
                            weaver:bool=False
                            ) -> np.ndarray:
 
@@ -222,13 +222,13 @@ def integral_bubble_region(r:np.ndarray,
 
 
 def integral_shell_region(r:np.ndarray,
-                          m_ej:float = 5*cgs.sun_mass,
-                          mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                          wind_speed:float = 3e6*cgs.cm/cgs.second,
-                          rw:float = 1.5*cgs.pc,
-                          rb:float = 25*cgs.pc,
-                          rho_bubble:float = 1e-2*cgs.proton_mass,
-                          rho_shell:float = 17*cgs.proton_mass,
+                          m_ej:float = 3*cgs.sun_mass,
+                          mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                          wind_speed:float = 1e8*cgs.cm/cgs.second,
+                          rw:float = 0.003*cgs.pc,
+                          rb:float = 20*cgs.pc,
+                          rho_bubble:float = 9e-5*cgs.proton_mass,
+                          rho_shell:float = 6*cgs.proton_mass,
                           weaver:bool=False) -> np.ndarray:
     
     I = integral_bubble_region(rb, 
@@ -256,15 +256,15 @@ def integral_shell_region(r:np.ndarray,
 
 
 def integral_ISM_region(r:np.ndarray,
-                        m_ej:float = 5*cgs.sun_mass,
-                        mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                        wind_speed:float = 3e6*cgs.cm/cgs.second,
-                        rw:float = 1.5*cgs.pc,
-                        rb:float = 25*cgs.pc,
-                        rho_bubble:float = 1e-2*cgs.proton_mass,
-                        rho_shell:float = 17*cgs.proton_mass,
+                        m_ej:float = 3*cgs.sun_mass,
+                        mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                        wind_speed:float = 1e8*cgs.cm/cgs.second,
+                        rw:float = 0.003*cgs.pc,
+                        rb:float = 20*cgs.pc,
+                        rho_bubble:float = 9e-5*cgs.proton_mass,
+                        rho_shell:float = 6*cgs.proton_mass,
                         rho_ISM:float = 1*cgs.proton_mass,
-                        r_shell:float = 0.3*cgs.pc) -> np.ndarray:
+                        r_shell:float = 1*cgs.pc) -> np.ndarray:
     
     rr = rb+r_shell
     
@@ -295,15 +295,15 @@ def integral_ISM_region(r:np.ndarray,
 
 
 def speed_profile(r:np.ndarray,
-                  m_ej:float = 5*cgs.sun_mass,
-                  mass_loss:float = 1e-5*cgs.sun_mass/cgs.year,
-                  wind_speed:float = 3e6*cgs.cm/cgs.second,
-                  rw:float = 1.5*cgs.pc,
-                  rb:float = 25*cgs.pc,
-                  rho_bubble:float = 1e-2*cgs.proton_mass,
-                  rho_shell:float = 17*cgs.proton_mass,
+                  m_ej:float = 3*cgs.sun_mass,
+                  mass_loss:float = 4e-11*cgs.sun_mass/cgs.year,
+                  wind_speed:float = 1e8*cgs.cm/cgs.second,
+                  rw:float = 0.003*cgs.pc,
+                  rb:float = 20*cgs.pc,
+                  rho_bubble:float = 9e-5*cgs.proton_mass,
+                  rho_shell:float = 6*cgs.proton_mass,
                   rho_ISM:float = 1*cgs.proton_mass,
-                  r_shell:float = 0.3*cgs.pc,
+                  r_shell:float = 1*cgs.pc,
                   E_SN:float = 1e51*cgs.erg,
                   weaver:bool=False) -> np.ndarray:
     
@@ -368,20 +368,23 @@ def speed_profile(r:np.ndarray,
 def test_density_profile():
     global weaver
     
-    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.0001*cgs.pc, 100*cgs.pc, 10000)
 
     fig = plt.figure()
 
-    for boolean in [True, False]:
-        weaver = boolean
-        rho_arr = density_profile(r_arr)
-        plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, label=r"$\rho(r)$, "f"Weaver {weaver}")
+    # for boolean in [True, False]:
+    #     weaver = boolean
+    #     rho_arr = density_profile(r_arr)
+    #     plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, label=r"$\rho(r)$, "f"Weaver {weaver}")
 
-    plt.axvline(x=1.5, color='black', linestyle="--",
+    rho_arr = density_profile(r_arr)
+    plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, linewidth=3, label=r"$\rho(r)$")
+
+    plt.axvline(x=0.003, color='black', linestyle="--",
                 label=r"$r_\mathrm{w}$")
-    plt.axvline(x=25, color='black', linestyle="-.",
+    plt.axvline(x=20, color='black', linestyle="-.",
                 label=r"$r_\mathrm{b}$")
-    plt.axvline(x=25.3, color='black', linestyle=":",
+    plt.axvline(x=21, color='black', linestyle=":",
                 label=r"$r_\mathrm{shell}$")
 
     plt.xlabel(r"Radius [pc]")
@@ -399,20 +402,23 @@ def test_density_profile():
 def test_mass_profile():
     global weaver
     
-    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.0001*cgs.pc, 100*cgs.pc, 10000)
 
     fig = plt.figure()
 
-    for boolean in [True, False]:
-        weaver = boolean
-        m_arr = mass_profile(r_arr, m_ej=15*cgs.sun_mass)
-        plt.plot(r_arr/cgs.pc, m_arr/cgs.sun_mass, label=r"M(r), "f"Weaver {weaver}")
+    # for boolean in [True, False]:
+    #     weaver = boolean
+    #     m_arr = mass_profile(r_arr, m_ej=15*cgs.sun_mass)
+    #     plt.plot(r_arr/cgs.pc, m_arr/cgs.sun_mass, label=r"M(r), "f"Weaver {weaver}")
 
-    plt.axvline(x=1.5, color='black', linestyle="--",
+    m_arr = mass_profile(r_arr, m_ej=15*cgs.sun_mass)
+    plt.plot(r_arr/cgs.pc, m_arr/cgs.sun_mass, linewidth=3, label=r"M(r)")
+
+    plt.axvline(x=0.003, color='black', linestyle="--",
                 label=r"$r_\mathrm{w}$")
-    plt.axvline(x=25, color='black', linestyle="-.",
+    plt.axvline(x=20, color='black', linestyle="-.",
                 label=r"$r_\mathrm{b}$")
-    plt.axvline(x=25.3, color='black', linestyle=":",
+    plt.axvline(x=21, color='black', linestyle=":",
                 label=r"$r_\mathrm{shell}$")
 
     plt.xlabel(r"Radius [pc]")
@@ -429,21 +435,24 @@ def test_mass_profile():
 def test_speed_profile():
     global weaver
     
-    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 10000)
+    r_arr = np.geomspace(0.0001*cgs.pc, 100*cgs.pc, 10000)
     
 
     fig = plt.figure()
 
-    for boolean in [True, False]:
-        weaver = boolean
-        s_arr = speed_profile(r_arr, m_ej=15*cgs.sun_mass)
-        plt.plot(r_arr/cgs.pc, s_arr, label=r"$u_\mathrm{s}(r)$, "f"Weaver {weaver}")
+    # for boolean in [True, False]:
+    #     weaver = boolean
+    #     s_arr = speed_profile(r_arr, m_ej=15*cgs.sun_mass)
+    #     plt.plot(r_arr/cgs.pc, s_arr, label=r"$u_\mathrm{s}(r)$, "f"Weaver {weaver}")
 
-    plt.axvline(x=1.5, color='black', linestyle="--",
+    s_arr = speed_profile(r_arr, m_ej=15*cgs.sun_mass)
+    plt.plot(r_arr/cgs.pc, s_arr, linewidth=3, label=r"$u_\mathrm{s}(r)$")
+
+    plt.axvline(x=0.003, color='black', linestyle="--",
                 label=r"$r_\mathrm{w}$")
-    plt.axvline(x=25, color='black', linestyle="-.",
+    plt.axvline(x=20, color='black', linestyle="-.",
                 label=r"$r_\mathrm{b}$")
-    plt.axvline(x=25.3, color='black', linestyle=":",
+    plt.axvline(x=21, color='black', linestyle=":",
                 label=r"$r_\mathrm{shell}$")
 
     plt.xlabel(r"Radius [pc]")
@@ -458,7 +467,7 @@ def test_speed_profile():
 
 gamma = 5/3
 alpha = 6*(gamma-1)/(gamma+1)
-weaver = True
+weaver = False
 
 if __name__ == "__main__":
 

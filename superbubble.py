@@ -272,7 +272,7 @@ def plot_SB_radius_distribution():
     
     radius = []
 
-    systems_number = 1000
+    systems_number = 10000
 
     for _ in tqdm(range(systems_number)):
         sb = Superbubble()

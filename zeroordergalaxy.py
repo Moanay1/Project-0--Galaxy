@@ -441,7 +441,7 @@ def test_kick_velocity() -> None:
         arr.append(give_kick_velocity())
 
     fig = plt.figure()
-    plt.hist(arr, histtype="step", density=True, bins=500)
+    plt.hist(arr, histtype="step", density=True, bins=50)
     plt.xlabel(r"$v_\mathrm{k}$ [km$\cdot$s$^{-1}$]")
     plt.ylabel("PDF")
     plt.xlim(np.min(arr), np.max(arr))

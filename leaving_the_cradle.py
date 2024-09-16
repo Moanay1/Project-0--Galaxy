@@ -194,14 +194,11 @@ def test_sound_speed():
 
 
 def shell_density(r_b:float=25*cgs.pc,
-                  rho_bubble:float = 1e-2*cgs.proton_mass,
                   shell_width:float = 1*cgs.pc,
                   ism_density:float=1*cgs.proton_mass) -> np.ndarray:
     
     total_mass = 4*np.pi/3 * ism_density * (r_b**3)
 
-    swept_mass = 4*np.pi/3 * rho_bubble * (r_b**3)
-    
     shell_volume = 4*np.pi/3 * ((r_b + shell_width)**3 - r_b**3)
 
     return (total_mass)/shell_volume, (total_mass), \
@@ -255,7 +252,6 @@ class PSR_SNR_System:
         self.wind_speed = wind_speed
 
         self.shell_density = shell_density(r_b=self.bubble_radius,
-                                           rho_bubble=self.bubble_density,
                                            shell_width=self.shell_width,
                                            ism_density=self.ism_density)[0]
         
@@ -506,7 +502,19 @@ class PSR_SNR_System:
         proportion = np.count_nonzero(is_inside_arr)/len(is_inside_arr)*100
 
         return proportion
+    
+    def show_properties(self):
 
+        print(f"Supernova Energy: {self.supernova_energy} erg")
+        print(f"ISM density: {self.ism_density/cgs.proton_mass} cm-3")
+        print(f"Bubble density: {self.bubble_density/cgs.proton_mass} cm-3")
+        print(f"Bubble radius: {self.bubble_radius/cgs.pc} pc")
+        print(f"Wind radius: {self.wind_radius/cgs.pc} pc")
+        print(f"Ejecta mass: {self.ejected_mass/cgs.sun_mass} Msol")
+        print(f"Stellar mass loss: {self.stellar_mass_loss/cgs.sun_mass*cgs.year} Msol/yr")
+        print(f"Wind speed: {self.wind_speed} cm/s")
+        print(f"Shell density: {self.shell_density/cgs.proton_mass} cm-3")
+        print(f"Mass ratio: {self.mass_ratio}")
 
 def evaluate_one_system(M=8, t=100e3*cgs.year):
 
@@ -554,7 +562,6 @@ def mass_ratio(bubble_radius = 10*cgs.pc,
     """SNR Mass/Shell Mass"""
 
     shell_mass = shell_density(bubble_radius,
-                               bubble_density,
                                shell_width,
                                ISM_density)[1]
     swept_mass = csm.mass_bubble_region(bubble_radius,
@@ -565,7 +572,7 @@ def mass_ratio(bubble_radius = 10*cgs.pc,
                                         bubble_radius,
                                         bubble_density)
     
-    ratio = shell_mass/swept_mass
+    ratio = shell_mass/(swept_mass)
 
     return ratio
 
@@ -582,7 +589,6 @@ def plot_bubble_mass_distribution():
         M = bubble.give_random_value(bubble.pick_IMF, 8, 40)
         star = bubble.Star(M)
         shell_mass = shell_density(star.bubble_radius,
-                                   star.bubble_density,
                                    1*cgs.pc,
                                    1*cgs.proton_mass)[1]
         swept_mass = csm.mass_bubble_region(star.bubble_radius,
@@ -606,8 +612,8 @@ def plot_bubble_mass_distribution():
     logbins2 = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
     fig = plt.figure()
-    plt.hist(ratio, histtype="step", bins=logbins, label="SNR mass = swept mass")
-    plt.hist(ratio2, histtype="step", bins=logbins2, label="SNR mass = ejected mass")
+    plt.hist(ratio, histtype="step", bins=logbins, label="SNR mass = ejecta + swept mass")
+    plt.hist(ratio2, histtype="step", bins=logbins2, label="SNR mass = ejecta mass")
     plt.xscale("log")
     plt.xlabel("Shell mass/SNR mass")
     plt.ylabel("Stars")
@@ -886,5 +892,18 @@ if __name__ == "__main__":
     # test_integration_number_points()
 
     # print(evaluate_several_systems(t=100*cgs.kyr))
+
+
+
+
+    # star = bubble.Star(M=8)
+
+    # system = PSR_SNR_System(m_ej=star.ejected_mass,
+    #                         mass_loss=star.mass_loss,
+    #                         wind_speed=star.wind_speed,
+    #                         wind_density=star.wind_density,
+    #                         wind_radius=star.wind_radius,
+    #                         bubble_radius=star.bubble_radius,
+    #                         bubble_density=star.bubble_density).show_properties()
 
     1
