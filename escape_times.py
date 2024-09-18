@@ -8,8 +8,8 @@ plt.rcParams["font.family"] = "serif"
 
 def plot_escape_times():
 
-    models = ["CSM", "Superbubble"]
-    linewidths = [2, 2]
+    models = ["CSM SNR", "CSM bubble", "Superbubble"]
+    colors = ["green", "blue", "red"]
     total_data = np.array([])
 
     fig = plt.figure()
@@ -23,34 +23,34 @@ def plot_escape_times():
 
     for i in range(len(models)):
         model = models[i]
-        linewidth = linewidths[i]
+        color = colors[i]
         data = np.genfromtxt(f"Escape Times/{model}.csv")
 
-        plt.hist(data, bins=logbins, weights=np.ones_like(data) / len(data), histtype="step", linewidth=linewidth, cumulative=-1, label=f"{model}")
+        plt.hist(data, bins=logbins, weights=np.ones_like(data) / len(data), color=color, histtype="step", linewidth=3, cumulative=-1, label=f"{model}", zorder=5)
 
-    plt.axvline(x=342, linestyle="--", color="red",
-                label=r"Geminga: 342 kyr")
-    plt.axvline(x=208, linestyle=":", color="red",
-                label=r"J0622+3749: 208 kyr")
-    plt.axvline(x=110, linestyle="-.", color="red",
+    plt.axvline(x=110, linewidth=5, alpha=0.75,  color="pink",
                 label=r"B0656+14: 110 kyr")
+    plt.axvline(x=208, linewidth=5, alpha=0.75,  color="violet",
+                label=r"J0622+3749: 208 kyr")
+    plt.axvline(x=342, linewidth=5, alpha=0.75, color="purple",
+                label=r"Geminga: 342 kyr")
     
-    plt.xlabel("Escape Time [kyr]")
+    plt.xlabel("Pulsar age [kyr]")
     plt.ylabel("Probability of being inside")
     plt.xscale("log")
     plt.legend(fontsize=11)
     plt.xlim([np.min(logbins), np.max(logbins)])
-    plt.grid()
+    #plt.grid()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/all escape times.pdf")
     plt.savefig("CSM_plots/all escape times.pdf")
     plt.show()
 
 
-def plot_escape_times_ISM():
+def plot_escape_times40():
 
-    models = ["ISM"]
-    linewidths = [2]
+    models = ["CSM", "CSM40"]
+    colors = ["blue", "red"]
     total_data = np.array([])
 
     fig = plt.figure()
@@ -64,24 +64,63 @@ def plot_escape_times_ISM():
 
     for i in range(len(models)):
         model = models[i]
-        linewidth = linewidths[i]
+        color = colors[i]
         data = np.genfromtxt(f"Escape Times/{model}.csv")
 
-        plt.hist(data, bins=logbins, weights=np.ones_like(data) / len(data), histtype="step", linewidth=linewidth, cumulative=-1, label=f"{model}")
+        plt.hist(data, bins=logbins, weights=np.ones_like(data) / len(data), color=color, histtype="step", linewidth=3, cumulative=-1, label=f"{model}", zorder=5)
 
-    plt.axvline(x=342, linestyle="--", color="red",
-                label=r"Geminga: 342 kyr")
-    plt.axvline(x=208, linestyle=":", color="red",
-                label=r"J0622+3749: 208 kyr")
-    plt.axvline(x=110, linestyle="-.", color="red",
+    plt.axvline(x=110, linewidth=5, alpha=0.75,  color="pink",
                 label=r"B0656+14: 110 kyr")
+    plt.axvline(x=208, linewidth=5, alpha=0.75,  color="violet",
+                label=r"J0622+3749: 208 kyr")
+    plt.axvline(x=342, linewidth=5, alpha=0.75, color="purple",
+                label=r"Geminga: 342 kyr")
     
-    plt.xlabel("Escape Time [kyr]")
+    plt.xlabel("Pulsar age [kyr]")
     plt.ylabel("Probability of being inside")
     plt.xscale("log")
     plt.legend(fontsize=11)
     plt.xlim([np.min(logbins), np.max(logbins)])
-    plt.grid()
+    #plt.grid()
+    fig.tight_layout()
+    # plt.savefig("Project Summary/Images/all escape times.pdf")
+    # plt.savefig("CSM_plots/all escape times.pdf")
+    plt.show()
+
+
+def plot_escape_times_ISM():
+
+    models = ["ISM"]
+    total_data = np.array([])
+
+    fig = plt.figure()
+
+    for model in models:
+        data = np.genfromtxt(f"Escape Times/{model}.csv")
+        total_data = np.append(total_data, data)
+
+    _, bins = np.histogram(total_data, bins=500)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    for i in range(len(models)):
+        model = models[i]
+        data = np.genfromtxt(f"Escape Times/{model}.csv")
+
+        plt.hist(data, bins=logbins, weights=np.ones_like(data) / len(data), color="black", histtype="step", linewidth=3, cumulative=-1, label=f"{model}", zorder=5)
+
+    plt.axvline(x=110, linewidth=5, alpha=0.75,  color="pink",
+                label=r"B0656+14: 110 kyr")
+    plt.axvline(x=208, linewidth=5, alpha=0.75,  color="violet",
+                label=r"J0622+3749: 208 kyr")
+    plt.axvline(x=342, linewidth=5, alpha=0.75, color="purple",
+                label=r"Geminga: 342 kyr")
+    
+    plt.xlabel("Pulsar age [kyr]")
+    plt.ylabel("Probability of being inside")
+    plt.xscale("log")
+    plt.legend(fontsize=11)
+    plt.xlim([np.min(logbins), np.max(logbins)])
+    #plt.grid()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/ISM escape times.pdf")
     plt.savefig("CSM_plots/ISM escape times.pdf")
@@ -91,6 +130,7 @@ def plot_escape_times_ISM():
 if __name__ == "__main__":
 
     plot_escape_times()
-    plot_escape_times_ISM()
+    # plot_escape_times40()
+    # plot_escape_times_ISM()
 
     1

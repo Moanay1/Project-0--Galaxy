@@ -1307,7 +1307,7 @@ if __name__ == "__main__":
     # plot_wind_luminosity()
     # plot_wind_speed()
     # plot_mass_loss()
-    # plot_bubble_density()
+    plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius(s=0)
     # plot_SN_radius_comparison_medium()
@@ -1322,7 +1322,7 @@ if __name__ == "__main__":
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
 
-    plot_distributions()
+    # plot_distributions()
 
 
 

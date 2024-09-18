@@ -378,20 +378,18 @@ def test_density_profile():
     #     plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, label=r"$\rho(r)$, "f"Weaver {weaver}")
 
     rho_arr = density_profile(r_arr)
-    plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, linewidth=3, label=r"$\rho(r)$")
+    plt.plot(r_arr/cgs.pc, rho_arr/cgs.proton_mass, linewidth=3, label=r"$\rho(r)$", color="blue")
 
-    plt.axvline(x=0.003, color='black', linestyle="--",
-                label=r"$r_\mathrm{w}$")
-    plt.axvline(x=20, color='black', linestyle="-.",
-                label=r"$r_\mathrm{b}$")
-    plt.axvline(x=21, color='black', linestyle=":",
-                label=r"$r_\mathrm{shell}$")
+    plt.axvline(x=0.003, color='black', linestyle="--")
+    plt.text(x=0.005, y=1e-2, s=r"$r_\mathrm{w}$")
+    plt.axvline(x=20, color='black', linestyle=":")
+    plt.text(x=25, y=1e-2, s=r"$r_\mathrm{b}$")
 
     plt.xlabel(r"Radius [pc]")
     plt.ylabel(r"Density [cm$^{-3}$]")
     plt.xscale("log")
     plt.yscale("log")
-    plt.grid()
+    # plt.grid()
     plt.legend()
     fig.tight_layout()
     plt.savefig("Project Summary/CSM_plots/density_structure.pdf")
@@ -472,7 +470,7 @@ weaver = False
 if __name__ == "__main__":
 
     test_density_profile()
-    test_mass_profile()
-    test_speed_profile()
+    # test_mass_profile()
+    # test_speed_profile()
 
     1

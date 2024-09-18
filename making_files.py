@@ -521,18 +521,20 @@ def plot_bow_shock_time_distribution():
     
     escape_times = np.array([])
 
+    boundaries = ["bubble", "SNR"]
 
-    file = open("Escape Times/CSM.csv", "w")
+    for boundary in boundaries:
+        file = open(f"Escape Times/CSM {boundary}.csv", "w")
 
-    for _ in tqdm(range(systems_number)):
-        escape_time = cradle.evaluate_several_systems(n=1)[1]/cgs.kyr
-        file.write(f"{escape_time[0]}\n")
-        escape_times = np.append(escape_times, escape_time)
+        for _ in tqdm(range(systems_number)):
+            escape_time = cradle.evaluate_several_systems(n=1, boundary=boundary)[1]/cgs.kyr
+            file.write(f"{escape_time[0]}\n")
+            escape_times = np.append(escape_times, escape_time)
 
-    _, bins = np.histogram(escape_times, bins=int(systems_number/20))
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+        _, bins = np.histogram(escape_times, bins=int(systems_number/20))
+        logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-    plt.hist(escape_times, bins=logbins, histtype="step", label="Model CSM")
+        plt.hist(escape_times, bins=logbins, histtype="step", label=f"Model CSM {boundary}")
 
     plt.xscale("log")
     plt.xlabel(r"$t_\mathrm{BS}$ [kyr]")

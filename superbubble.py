@@ -137,6 +137,7 @@ def test_stellar_population():
 def pick_random_massive_star(stars):
 
     massive_stars = stars[stars > 8*cgs.sun_mass]
+    massive_stars = massive_stars[massive_stars < 40*cgs.sun_mass]
 
     random_star = np.random.choice(massive_stars)
 
@@ -245,7 +246,7 @@ def plot_escape_time_distribution():
     systems_number = 10000
     escape_times = np.array([])
 
-    file = open("Escape Times/Superbubble.csv", "w")
+    file = open("Escape Times/Superbubble40.csv", "w")
 
 
     for _ in tqdm(range(systems_number)):
@@ -264,7 +265,7 @@ def plot_escape_time_distribution():
     plt.ylabel(r"Pulsars")
     plt.grid()
     fig.tight_layout()
-    plt.savefig("Project Summary/Images/t_BS Superbubble.pdf")
+    # plt.savefig("Project Summary/Images/t_BS Superbubble.pdf")
     plt.show()
 
 
@@ -299,9 +300,9 @@ if __name__ == "__main__":
     # test_cluster_mass()   
     # test_IMF()
     # test_stellar_population()
-    plot_SB_radius_distribution()
+    # plot_SB_radius_distribution()
 
-    # plot_escape_time_distribution()
+    plot_escape_time_distribution()
 
 
     1

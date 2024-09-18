@@ -335,7 +335,7 @@ class PSR_SNR_System:
                                                                                            M=self.ejected_mass),
                                              0.001, self.radius_arr[0])[0]
 
-        self.time_arr = np.array([inte.simpson(1/self.speed_arr[:i], self.radius_arr[:i])
+        self.time_arr = np.array([inte.simpson(1/self.speed_arr[:i], x=self.radius_arr[:i])
                                   for i in range(2, self.integration_points)]) + integration_constant
         
         self.radius_arr = self.radius_arr[1:-1]
@@ -440,16 +440,16 @@ class PSR_SNR_System:
             self.speed_arr[j] = self.first_radiative_speed * (self.time_arr[j] / self.first_radiative_time)**(-0.7)
 
 
-    def evolve(self):
+    def evolve(self, boundary="bubble"):
 
         start = time.time()
         # self.reinitialize()
-        if self.mass_ratio < 10:
+        if boundary == "SNR":
             self.give_time()
             self.associate_values()
             self.radiative_phase()
             self.merger()
-        else:
+        elif boundary == "bubble":
             self.time_arr = np.geomspace(1e1*cgs.year, 1e7*cgs.year, 10000)
             self.radius_arr = np.zeros(np.shape(self.time_arr)) + self.bubble_radius
         end = time.time()
@@ -516,7 +516,7 @@ class PSR_SNR_System:
         print(f"Shell density: {self.shell_density/cgs.proton_mass} cm-3")
         print(f"Mass ratio: {self.mass_ratio}")
 
-def evaluate_one_system(M=8, t=100e3*cgs.year):
+def evaluate_one_system(M=8, t=100e3*cgs.year, boundary="bubble"):
 
     star = bubble.Star(M)
 
@@ -528,21 +528,21 @@ def evaluate_one_system(M=8, t=100e3*cgs.year):
                             bubble_density=star.bubble_density
                             )
     
-    system.evolve()
+    system.evolve(boundary)
     inside = system.give_pulsar_population_inside(t=t, n_pulsars=1)/100
     escape_time = system.escape_time
 
     return inside, escape_time
 
 
-def evaluate_several_systems(n=1000, t=100e3*cgs.year):
+def evaluate_several_systems(n=1000, t=100e3*cgs.year, max_mass=120, boundary="bubble"):
 
     proportion_arr = np.array([])
     escape_times = np.array([])
 
     for _ in range(n):
-        M = bubble.give_random_value(bubble.pick_IMF, 8, 120)
-        result = evaluate_one_system(M, t)
+        M = bubble.give_random_value(bubble.pick_IMF, 8, max_mass)
+        result = evaluate_one_system(M, t, boundary)
         proportion_arr = np.append(proportion_arr, result[0])
         escape_times = np.append(escape_times, result[1])
 
