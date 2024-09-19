@@ -342,7 +342,7 @@ def test_E_SN() -> None:
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 2.7e50, 3.5)/inte.quad(
     lambda x: SN.make_lognormal(x, 2.7e50, 3.5), 1e49, 1e52)[0], linewidth=3, color="red")
-    plt.axvline(x=1e51, color="black", linestyle="--", label="Usual value")
+    plt.axvline(x=1e51, color="black", linestyle="--", label="Typical value")
     plt.hist(arr, histtype="step", density=True, color="blue", bins=logbins, linewidth=3)
     plt.xlabel(r"$E_\mathrm{SN}$ [erg]")
     plt.ylabel("PDF")
@@ -366,7 +366,7 @@ def test_n_ISM() -> None:
     fig = plt.figure()
     plt.plot(z, SN.make_lognormal(z, 0.069, 5.1)/inte.quad(
         lambda x: SN.make_lognormal(x, 0.069, 5.1), 1e-4, 1e1)[0], linewidth=3, color="red")
-    plt.axvline(x=1, color="black", linestyle="--", label="Usual value")
+    plt.axvline(x=1, color="black", linestyle="--", label="Typical value")
     plt.hist(arr, histtype="step", bins=logbins, color="blue", density=True, linewidth=3)
     plt.xlabel(r"$n_\mathrm{ISM}$ [cm$^{-3}$]")
     plt.ylabel("PDF")

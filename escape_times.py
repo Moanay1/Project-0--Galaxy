@@ -8,8 +8,8 @@ plt.rcParams["font.family"] = "serif"
 
 def plot_escape_times():
 
-    models = ["CSM SNR", "CSM bubble", "Superbubble"]
-    colors = ["green", "blue", "red"]
+    models = ["CSM bubble", "Superbubble"]
+    colors = ["blue", "red"]
     total_data = np.array([])
 
     fig = plt.figure()
@@ -49,8 +49,8 @@ def plot_escape_times():
 
 def plot_escape_times40():
 
-    models = ["CSM", "CSM40"]
-    colors = ["blue", "red"]
+    models = ["CSM", "CSM40", "Superbubble", "Superbubble40"]
+    colors = ["blue", "green", "red", "orange"]
     total_data = np.array([])
 
     fig = plt.figure()
@@ -83,8 +83,8 @@ def plot_escape_times40():
     plt.xlim([np.min(logbins), np.max(logbins)])
     #plt.grid()
     fig.tight_layout()
-    # plt.savefig("Project Summary/Images/all escape times.pdf")
-    # plt.savefig("CSM_plots/all escape times.pdf")
+    plt.savefig("Project Summary/Images/escape_times_40.pdf")
+    plt.savefig("CSM_plots/escape_times_40.pdf")
     plt.show()
 
 
