@@ -62,7 +62,7 @@ def test_cluster_mass() -> None:
     plt.plot(R/cgs.sun_mass,
              make_cluster_IMF(R)*cgs.sun_mass/inte.quad(make_cluster_IMF, 1e3*cgs.sun_mass, 1e5*cgs.sun_mass)[0])
     plt.hist(arr, histtype="step", density=True, bins=logbins)
-    plt.xlabel("$M_\mathrm{cl}$ [M$_\odot$]")
+    plt.xlabel(r"$M_\mathrm{cl}$ [M$_\odot$]")
     plt.ylabel("PDF")
     plt.xscale("log")
     plt.yscale("log")
@@ -124,7 +124,7 @@ def test_stellar_population():
 
     fig = plt.figure()
     plt.hist(arr, histtype="step", density=True, bins=logbins,
-             label=f"Total mass: {np.sum(arr):.0f} M$_\odot$")
+             label=f"Total mass: {np.sum(arr):.0f} "r"M$_\odot$")
     plt.xscale("log")
     plt.yscale("log")
     plt.xlabel(r"$M$ [M$_\odot$]")
@@ -143,6 +143,42 @@ def pick_random_massive_star(stars):
 
     return random_star
 
+
+def give_total_star_mass_loss_rate(stars):
+
+    mass_loss = 0
+
+    for star in stars/cgs.sun_mass:
+        mass_loss += bubble.give_mass_loss_MS(star)*cgs.sun_mass/cgs.year
+
+    return mass_loss
+
+
+def give_total_star_wind_speed(stars):
+
+    mass_loss_tot = 0
+    wind_speed_tot = 0
+
+    for star in stars/cgs.sun_mass:
+        typee = "O" if star > 16 else "B"
+        mass_loss = bubble.give_mass_loss_MS(star)*cgs.sun_mass/cgs.year
+        mass_loss_tot += mass_loss
+        wind_speed = bubble.give_wind_speed_type(star, typee)*cgs.km/cgs.sec
+        wind_speed_tot += mass_loss*wind_speed
+
+    wind_speed_tot *= mass_loss_tot**(-1)
+
+    return wind_speed_tot
+
+
+def give_total_luminosity_computed(cluster_mass_loss, cluster_wind_speed):
+
+    cluster_luminosity = cluster_mass_loss*cluster_wind_speed**2/2
+
+    return cluster_luminosity
+
+
+
 def give_superbubble_radius(n_ISM:float=100/cgs.cm3,
                             luminosity:float=1e37*cgs.erg/cgs.sec,
                             time:float=10*cgs.Myr) -> float:
@@ -160,6 +196,18 @@ def give_superbubble_radius(n_ISM:float=100/cgs.cm3,
     return 174 * (n_ISM)**(-1/5) * (0.22 * luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
 
 
+def give_wind_termination_shock_radius(n_ISM:float=100/cgs.cm3,
+                                 cluster_luminosity:float=1e37*cgs.erg/cgs.sec,
+                                 cluster_mass_loss:float=1e-4*cgs.sun_mass/cgs.year,
+                                 cluster_wind_speed:float=2e3*cgs.km/cgs.sec,
+                                 time:float=10*cgs.Myr):
+    
+    r = 1.3 * (cluster_mass_loss/(1e-5*cgs.sun_mass/cgs.year))**(1/2) * (cluster_wind_speed/1e6)**(1/2) * \
+       (cluster_luminosity/1e36)**(-7/35) * (n_ISM)**(-21/70) * (time/(1*cgs.Myr))**(14/35) * cgs.pc
+    
+    return r
+
+
 class Superbubble:
     def __init__(self, n_ISM = 100/cgs.cm3) -> None:
 
@@ -172,6 +220,10 @@ class Superbubble:
         self.stars_number = len(self.star_masses)
         self.stars_luminosity = bubble.give_wind_luminosity_type(self.star_masses/cgs.sun_mass)
         self.total_luminosity = np.sum(self.stars_luminosity)
+        self.total_mass_loss = give_total_star_mass_loss_rate(self.star_masses)
+        self.total_wind_speed = give_total_star_wind_speed(self.star_masses)
+        #self.computed_luminosity = give_total_luminosity_computed(cluster_mass_loss=self.total_mass_loss,
+        #                                                          cluster_wind_speed=self.total_wind_speed)
 
     def explode_star(self):
 
@@ -184,6 +236,12 @@ class Superbubble:
         self.bubble_radius_explosion = give_superbubble_radius(self.ism_number_density,
                                                      self.total_luminosity,
                                                      self.explosion_time)
+        
+        self.wind_radius_explosion = give_wind_termination_shock_radius(self.ism_number_density,
+                                                                  self.total_luminosity,
+                                                                  self.total_mass_loss,
+                                                                  self.total_wind_speed,
+                                                                  self.explosion_time)
 
         self.bubble_radius = give_superbubble_radius(self.ism_number_density,
                                                      self.total_luminosity,
@@ -241,6 +299,91 @@ def evaluate_one_system():
     return superbubble.escape_time
 
 
+def plot_mass_loss_rate_distribution():
+    
+    mass_loss = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        system = Superbubble()
+        mass_loss.append(system.total_mass_loss/(cgs.sun_mass/cgs.year))
+
+    mass_loss = np.array(mass_loss)
+
+    _, bins = np.histogram(mass_loss, bins=50)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(mass_loss, histtype="step", bins=logbins, weights=np.ones_like(mass_loss) / len(mass_loss), label="")
+    plt.xscale("log")
+    plt.xlabel(r"Mass loss [M$_\odot$/yr]")  
+    plt.ylabel("Proportion of clusters")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/SB_plots/Mass Loss.pdf")
+    plt.savefig("SB_plots/Mass Loss.pdf")
+    plt.show()
+
+
+def plot_wind_speed_distribution():
+    
+    wind_speed = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        system = Superbubble()
+        wind_speed.append(system.total_wind_speed/cgs.km)
+
+    wind_speed = np.array(wind_speed)
+
+    fig = plt.figure()
+    plt.hist(wind_speed, histtype="step", bins=50, weights=np.ones_like(wind_speed) / len(wind_speed), label="")
+    plt.xlabel("Wind speed [km/s]")  
+    plt.ylabel("Proportion of clusters")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/SB_plots/Wind Speed.pdf")
+    plt.savefig("SB_plots/Wind Speed.pdf")
+    plt.show()
+
+
+def plot_luminosity_distribution():
+    
+    luminosity_computed = []
+    luminosity_addition = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        system = Superbubble()
+        luminosity_addition.append(system.total_luminosity)
+        luminosity_computed.append(system.computed_luminosity)
+
+    luminosity_addition = np.array(luminosity_addition)
+    luminosity_computed = np.array(luminosity_computed)
+
+    _, bins = np.histogram(luminosity_addition, bins=50)
+    logbins1 = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    _, bins = np.histogram(luminosity_computed, bins=50)
+    logbins2 = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    fig = plt.figure()
+    plt.hist(luminosity_addition, histtype="step", bins=logbins1, weights=np.ones_like(luminosity_addition) / len(luminosity_addition), label="Addition")
+    plt.hist(luminosity_computed, histtype="step", bins=logbins2, weights=np.ones_like(luminosity_computed) / len(luminosity_computed), label="Computed")
+    plt.xlabel("Cluster luminosity [erg/s]")  
+    plt.ylabel("Proportion of clusters")
+    plt.xscale("log")
+    plt.grid()
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig("Project Summary/SB_plots/Cluster Luminosity.pdf")
+    plt.savefig("SB_plots/Cluster Luminosity.pdf")
+    plt.show()
+
+
 def plot_escape_time_distribution():
 
     systems_number = 10000
@@ -273,7 +416,7 @@ def plot_SB_radius_distribution():
     
     radius = []
 
-    systems_number = 10000
+    systems_number = 1000
 
     for _ in tqdm(range(systems_number)):
         sb = Superbubble()
@@ -283,14 +426,38 @@ def plot_SB_radius_distribution():
     radius = np.array(radius)
 
     fig = plt.figure()
-    plt.hist(radius, histtype="step", bins=50, label="")
+    plt.hist(radius, histtype="step", bins=50, weights=np.ones_like(radius) / len(radius), label="")
     plt.xlabel("Superbubble radius [pc]")
-    plt.ylabel("Stars")
+    plt.ylabel("Proportion of clusters")
     plt.grid()
     fig.tight_layout()
     plt.savefig("Project Summary/Images/Superbubble radius.pdf")
     plt.savefig("CSM_plots/Superbubble radius.png")
     plt.savefig("CSM_plots/Superbubble radius.pdf")
+    plt.show()
+
+
+def plot_wind_radius_distribution():
+    
+    radius = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        sb = Superbubble()
+        sb.explode_star()
+        radius.append(sb.wind_radius_explosion/cgs.pc)
+
+    radius = np.array(radius)
+
+    fig = plt.figure()
+    plt.hist(radius, histtype="step", bins=50, weights=np.ones_like(radius) / len(radius), label="")
+    plt.xlabel("Wind termination shock radius [pc]")
+    plt.ylabel("Proportion of clusters")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/SB_plots/Wind termination shock radius.pdf")
+    plt.savefig("SB_plots/Wind termination shock radius.pdf")
     plt.show()
 
 
@@ -301,8 +468,14 @@ if __name__ == "__main__":
     # test_IMF()
     # test_stellar_population()
     # plot_SB_radius_distribution()
+    # plot_mass_loss_rate_distribution()
+    # plot_wind_speed_distribution()
+    # plot_luminosity_distribution()
+    plot_wind_radius_distribution()
 
-    plot_escape_time_distribution()
+
+
+    # plot_escape_time_distribution()
 
 
     1

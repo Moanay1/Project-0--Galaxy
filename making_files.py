@@ -737,7 +737,7 @@ def plot_luminosity_over_distance_pulsars(zoom:bool = True):
 
     fig = plt.figure()
 
-    p = plt.scatter(distance, false_flux, s=size*25, c=characteristic_age,
+    p = plt.scatter(distance, false_flux, s=100, c=characteristic_age,
                 norm=col.LogNorm(vmin=np.min(characteristic_age),
                                  vmax=np.max(characteristic_age)),
                 cmap="gist_rainbow")
@@ -828,12 +828,12 @@ if __name__ == "__main__":
     # plot_age_SNR()
     # plot_morphology_PSR()
 
-    plot_bow_shock_time_distribution()
+    # plot_bow_shock_time_distribution()
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
     # plot_flux_pulsars()
-    # plot_luminosity_over_distance_pulsars()
+    plot_luminosity_over_distance_pulsars()
 
     # plot_period_PSR()
 
