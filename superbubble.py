@@ -6,6 +6,7 @@ import shock_speed as shock
 import sn_bubble as bubble
 import scipy.integrate as inte
 import accurate_csm as csm
+import leaving_the_cradle as cradle
 import cgs
 import time
 
@@ -196,6 +197,15 @@ def give_superbubble_radius(n_ISM:float=100/cgs.cm3,
     return 174 * (n_ISM)**(-1/5) * (0.22 * luminosity/1e37)**(1/5) * (time/(10*cgs.Myr))**(3/5) * cgs.pc
 
 
+def give_superbubble_density(M, total_luminosity = 1e37, n_ISM=100):
+    """Bubble number density from MacLow and McCray 1988"""
+    
+    t_MS = bubble.give_MS_time(M/cgs.sun_mass)  # yr
+    n_b = 4e-3 * (0.22*total_luminosity/1e38)**(6/35) * (n_ISM)**(19/35) * \
+        (t_MS/1e7)**(-22/35)  # cm-3
+    return n_b
+
+
 def give_wind_termination_shock_radius(n_ISM:float=100/cgs.cm3,
                                  cluster_luminosity:float=1e37*cgs.erg/cgs.sec,
                                  cluster_mass_loss:float=1e-4*cgs.sun_mass/cgs.year,
@@ -236,6 +246,7 @@ class Superbubble:
         self.bubble_radius_explosion = give_superbubble_radius(self.ism_number_density,
                                                      self.total_luminosity,
                                                      self.explosion_time)
+        self.superbubble_density = give_superbubble_density(self.star_mass, self.total_luminosity, self.ism_number_density)
         
         self.wind_radius_explosion = give_wind_termination_shock_radius(self.ism_number_density,
                                                                   self.total_luminosity,
@@ -288,15 +299,67 @@ class Superbubble:
         return proportion
 
 
-def evaluate_one_system():
+def evaluate_one_system(boundary="bubble"):
 
-    superbubble = Superbubble()
+    sb = Superbubble()
+    sb.explode_star()
 
-    superbubble.explode_star()
+    star = bubble.Star(sb.star_mass/cgs.sun_mass)
+    wind_density = sb.total_mass_loss/(4*np.pi *  sb.total_wind_speed)/cgs.proton_mass
+    system = cradle.PSR_SNR_System(n_ISM=100,
+                                m_ej=star.ejected_mass,
+                                mass_loss=sb.total_mass_loss,
+                                wind_speed=sb.total_wind_speed,
+                                wind_radius=sb.wind_radius_explosion,
+                                wind_density=wind_density,
+                                bubble_radius=sb.bubble_radius_explosion,
+                                bubble_density=sb.superbubble_density*cgs.proton_mass)
+    
+    system.evolve(boundary=boundary)
+    system.give_escape_time()
 
-    superbubble.give_escape_time()
+    return system.escape_time
 
-    return superbubble.escape_time
+
+def plot_SNR_in_SB_evolution():
+
+    ratio = []
+
+    systems_number = 10
+
+    for _ in tqdm(range(systems_number)):
+
+        sb = Superbubble()
+        sb.explode_star()
+
+        star = bubble.Star(sb.star_mass/cgs.sun_mass)
+        wind_density = sb.total_mass_loss/(4*np.pi *  sb.total_wind_speed)/cgs.proton_mass
+        system = cradle.PSR_SNR_System(n_ISM=100,
+                                    m_ej=star.ejected_mass,
+                                    mass_loss=sb.total_mass_loss,
+                                    wind_speed=sb.total_wind_speed,
+                                    wind_radius=sb.wind_radius_explosion,
+                                    wind_density=wind_density,
+                                    bubble_radius=sb.bubble_radius_explosion,
+                                    bubble_density=sb.superbubble_density*cgs.proton_mass)
+        
+        system.evolve(boundary="SNR")
+        system.give_escape_time()
+
+        ratio.append(system.merger_radius/sb.bubble_radius_explosion)
+
+    ratio = np.array(ratio)
+
+    fig = plt.figure()
+    plt.hist(ratio, histtype="step", bins=50, weights=np.ones_like(ratio) / len(ratio), label="")
+    plt.xlabel(r"Merger radius/Bubble radius [n.u.]")  
+    plt.ylabel("Proportion of clusters")
+    plt.grid()
+    fig.tight_layout()
+    # plt.savefig("Project Summary/SB_plots/Merger radius over bubble radius.pdf")
+    # plt.savefig("SB_plots/Merger radius over bubble radius.pdf")
+    plt.show()
+    
 
 
 def plot_mass_loss_rate_distribution():
@@ -349,6 +412,30 @@ def plot_wind_speed_distribution():
     plt.show()
 
 
+def plot_superbubble_density_distribution():
+    
+    density = []
+
+    systems_number = 1000
+
+    for _ in tqdm(range(systems_number)):
+        sb = Superbubble()
+        sb.explode_star()
+        density.append(sb.superbubble_density)
+
+    density = np.array(density)
+
+    fig = plt.figure()
+    plt.hist(density, histtype="step", bins=50, weights=np.ones_like(density) / len(density), label="")
+    plt.xlabel("Superbubble density [cm$^{-3}$]")  
+    plt.ylabel("Proportion of clusters")
+    plt.grid()
+    fig.tight_layout()
+    plt.savefig("Project Summary/SB_plots/Superbubble density.pdf")
+    plt.savefig("SB_plots/Superbubble density.pdf")
+    plt.show()
+
+
 def plot_luminosity_distribution():
     
     luminosity_computed = []
@@ -388,25 +475,27 @@ def plot_escape_time_distribution():
 
     systems_number = 10000
     escape_times = np.array([])
-
-    file = open("Escape Times/Superbubble40.csv", "w")
-
-
-    for _ in tqdm(range(systems_number)):
-        escape_time = evaluate_one_system()/cgs.kyr
-        file.write(f"{escape_time}\n")
-        escape_times = np.append(escape_times, escape_time)
+    boundaries = ["SNR", "bubble"]
 
     fig = plt.figure()
 
-    _, bins = np.histogram(escape_times, bins=100)
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    for boundary in boundaries:
+        file = open(f"Escape Times/Superbubble {boundary}.csv", "w")
 
-    plt.hist(escape_times, bins=logbins, histtype="step")
+        for _ in tqdm(range(systems_number)):
+            escape_time = evaluate_one_system(boundary=boundary)/cgs.kyr
+            file.write(f"{escape_time}\n")
+            escape_times = np.append(escape_times, escape_time)
+
+        _, bins = np.histogram(escape_times, bins=100)
+        logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+        plt.hist(escape_times, bins=logbins, histtype="step", label=boundary)
     plt.xscale("log")
     plt.xlabel(r"$t_\mathrm{BS}$ [kyr]")
     plt.ylabel(r"Pulsars")
     plt.grid()
+    plt.legend()
     fig.tight_layout()
     # plt.savefig("Project Summary/Images/t_BS Superbubble.pdf")
     plt.show()
@@ -467,13 +556,14 @@ if __name__ == "__main__":
     # test_cluster_mass()   
     # test_IMF()
     # test_stellar_population()
-    # plot_SB_radius_distribution()
+    plot_SB_radius_distribution()
     # plot_mass_loss_rate_distribution()
     # plot_wind_speed_distribution()
     # plot_luminosity_distribution()
-    plot_wind_radius_distribution()
+    # plot_wind_radius_distribution()
+    # plot_superbubble_density_distribution()
 
-
+    # plot_SNR_in_SB_evolution()
 
     # plot_escape_time_distribution()
 

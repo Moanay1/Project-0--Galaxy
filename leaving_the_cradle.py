@@ -376,7 +376,7 @@ class PSR_SNR_System:
 
         self.merger_time = self.time_arr[i]
         self.merger_radius = self.radius_arr[i]
-        self.radius_arr[i:] = self.bubble_radius
+        self.radius_arr[i:] = 0 #min(self.bubble_radius, self.merger_radius)
 
 
     def radiative_phase(self):
@@ -447,7 +447,7 @@ class PSR_SNR_System:
         if boundary == "SNR":
             self.give_time()
             self.associate_values()
-            self.radiative_phase()
+            # self.radiative_phase()
             self.merger()
         elif boundary == "bubble":
             self.time_arr = np.geomspace(1e1*cgs.year, 1e7*cgs.year, 10000)
