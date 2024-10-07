@@ -265,7 +265,7 @@ class PSR_SNR_System:
                                      self.wind_radius)
 
         self.integration_points = n_
-        self.radius_arr_ref = np.geomspace(1*cgs.pc, 200*cgs.pc, num=self.integration_points)
+        self.radius_arr_ref = np.geomspace(1*cgs.pc, 300*cgs.pc, num=self.integration_points)
         self.radius_arr = self.radius_arr_ref
 
         self.weaver = weaver
@@ -376,7 +376,7 @@ class PSR_SNR_System:
 
         self.merger_time = self.time_arr[i]
         self.merger_radius = self.radius_arr[i]
-        self.radius_arr[i:] = 0 #min(self.bubble_radius, self.merger_radius)
+        self.radius_arr[i:] = min(self.merger_radius, self.shell_radius)
 
 
     def radiative_phase(self):
@@ -396,6 +396,7 @@ class PSR_SNR_System:
         else:
             self.radiative_phase_outside()
         
+        # self.radiative_phase_inside()
 
     def radiative_phase_inside(self):
 
@@ -440,7 +441,7 @@ class PSR_SNR_System:
             self.speed_arr[j] = self.first_radiative_speed * (self.time_arr[j] / self.first_radiative_time)**(-0.7)
 
 
-    def evolve(self, boundary="bubble"):
+    def evolve(self, boundary="SNR"):
 
         start = time.time()
         # self.reinitialize()
@@ -451,7 +452,7 @@ class PSR_SNR_System:
             self.merger()
         elif boundary == "bubble":
             self.time_arr = np.geomspace(1e1*cgs.year, 1e7*cgs.year, 10000)
-            self.radius_arr = np.zeros(np.shape(self.time_arr)) + self.bubble_radius
+            self.radius_arr = np.zeros(np.shape(self.time_arr)) + self.shell_radius
         end = time.time()
         # print(f"Computation takes {(end-start)} s.")
 
@@ -707,7 +708,7 @@ def test_integration_number_points(plot_evolution:bool=True):
 
 def final_system_evolution(n=100):
 
-    system = PSR_SNR_System(n_=n, n_ISM=100)
+    system = PSR_SNR_System(n_=n)
     system.evolve()
 
 
@@ -878,10 +879,10 @@ if __name__ == "__main__":
     # test_shell_density()
     # plot_bubble_radius_distribution()
     # plot_mass_loss_distribution()
-    plot_bubble_mass_distribution()
+    # plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
-    # final_system_evolution(n=500)
+    final_system_evolution(n=500)
 
     # plot_comparison_different_models(n=500)
     

@@ -90,7 +90,7 @@ def plot_escape_times40():
 
 def plot_escape_times_SNR():
 
-    models = ["CSM bubble", "CSM SNR", "Superbubble bubble", "Superbubble SNR"]
+    models = ["CSM bubble 40", "CSM SNR 40", "Superbubble bubble 40", "Superbubble SNR 40"]
     colors = ["blue", "green", "red", "orange"]
     total_data = np.array([])
 

@@ -521,13 +521,13 @@ def plot_bow_shock_time_distribution():
     
     escape_times = np.array([])
 
-    boundaries = ["bubble", "SNR"]
+    boundaries = ["bubble"] # ["bubble", "SNR"]
 
     for boundary in boundaries:
-        file = open(f"Escape Times/CSM {boundary}.csv", "w")
+        file = open(f"Escape Times/CSM {boundary} 40.csv", "w")
 
         for _ in tqdm(range(systems_number)):
-            escape_time = cradle.evaluate_several_systems(n=1, boundary=boundary)[1]/cgs.kyr
+            escape_time = cradle.evaluate_several_systems(n=1, boundary=boundary, max_mass=40)[1]/cgs.kyr
             file.write(f"{escape_time[0]}\n")
             escape_times = np.append(escape_times, escape_time)
 
@@ -542,7 +542,7 @@ def plot_bow_shock_time_distribution():
     plt.grid()
     plt.legend(fontsize=9)
     fig.tight_layout()
-    plt.savefig(r"Project Summary/Images/Final_plot_1.pdf")
+    plt.savefig(r"Project Summary/Images/Final_plot_40_SNR_vs_bubble.pdf")
     plt.show()
 
 
@@ -828,12 +828,12 @@ if __name__ == "__main__":
     # plot_age_SNR()
     # plot_morphology_PSR()
 
-    # plot_bow_shock_time_distribution()
+    plot_bow_shock_time_distribution()
     # plot_ATNF_pulsars_t_BS()
 
     # plot_giacinti_pulsars()
     # plot_flux_pulsars()
-    plot_luminosity_over_distance_pulsars()
+    # plot_luminosity_over_distance_pulsars()
 
     # plot_period_PSR()
 

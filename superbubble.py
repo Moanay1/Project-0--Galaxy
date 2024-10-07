@@ -556,7 +556,7 @@ if __name__ == "__main__":
     # test_cluster_mass()   
     # test_IMF()
     # test_stellar_population()
-    plot_SB_radius_distribution()
+    # plot_SB_radius_distribution()
     # plot_mass_loss_rate_distribution()
     # plot_wind_speed_distribution()
     # plot_luminosity_distribution()
@@ -565,7 +565,7 @@ if __name__ == "__main__":
 
     # plot_SNR_in_SB_evolution()
 
-    # plot_escape_time_distribution()
+    plot_escape_time_distribution()
 
 
     1
