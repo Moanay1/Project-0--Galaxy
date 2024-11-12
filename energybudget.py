@@ -135,7 +135,7 @@ yr = np.pi*1e7 # s
 I = moment_inertia()
 
 
-def plot_available_energy_over_time(P0=100):
+def plot_available_energy_over_time(P0=0.1):
 
     print(f"bowshock time = {bowshock_time():.0f} yr")
     print(f"spindown time = {spindown_time(P0=P0)/yr:.0f} yr")
@@ -151,20 +151,23 @@ def plot_available_energy_over_time(P0=100):
     fig = plt.figure()
 
     # plt.plot(t_arr, luminosity(t_arr))
-    plt.plot(t_arr, available_energy_arr,
+    plt.plot(t_arr, available_energy_arr, linewidth = 3, color="blue",
              label=r"$E(t_\mathrm{BS})/E(0)=$"f"{energy_frac*100:.0f} %")
-    plt.axvline(x=bowshock_time(), c="orange", linestyle="--",
-                label="Bowshock time")
-    plt.axvline(x=spindown_time(P0=P0)/yr, c="red", linestyle="-.",
+    plt.axvline(x=bowshock_time(), c="green", linestyle="--", linewidth=3,
+                label="Escape time")
+    plt.axvline(x=spindown_time(P0=P0)/yr, c="red", linestyle="-.", linewidth=3,
                 label="Spindown time")
     plt.xscale("log")
     # plt.yscale("log")
     plt.xlabel(r"Pulsar age [yr]")
     plt.ylabel(r"Energy available [%]")
-    plt.grid()
-    plt.legend()
+    plt.ylim(bottom=-0.5)
+    plt.xlim(np.min(t_arr), np.max(t_arr))
+    # plt.grid()
+    plt.legend(fontsize=13)
     fig.tight_layout()
     plt.savefig("Project Summary/Images/energybudget(t_age).pdf")
+    plt.savefig("Project Summary/CSM_plots/energybudget(t_age).pdf")
     plt.show()
 
 
@@ -242,6 +245,56 @@ def plot_efficiency_distribution():
     plt.show()
 
 
+def plot_efficiencies_different_models():
+
+    models = ["CSM40", "Superbubble40"]
+    legends = ["CSM", "SB"]
+    colors = ["blue", "red"]
+
+    fig = plt.figure()
+
+    escape_times = np.genfromtxt(f"Escape Times/CSM40.csv") #kyr
+    number_pulsars = len(escape_times)
+    periods = galaxy.give_P_PSR_Watters_Romani(n_=number_pulsars)
+
+    for i in range(len(models)):
+        model = models[i]
+        legend = legends[i]
+        color = colors[i]
+
+        escape_times = np.genfromtxt(f"Escape Times/{model}.csv")
+
+        number_pulsars = len(escape_times)
+
+        efficiencies = np.array([available_energy(t_init=escape_times[i]*1e3,
+                                                P0=periods[i]) /
+                                available_energy(P0=periods[i])
+                                for i in tqdm(range(number_pulsars))])*100
+
+        efficiencies = efficiencies[efficiencies > 0]
+
+        plt.hist(efficiencies, histtype="step", bins=100, linewidth=2,
+                 color=color, 
+                 weights=np.ones_like(efficiencies) / len(efficiencies),
+                 label=legend)
+        
+    plt.axvline(x=40, color="black", linewidth=2, linestyle="--", label="Result from Evoli+2021")
+
+    plt.xlabel("Energy available [%]")
+    plt.ylabel("Pulsars proportion per bin")
+    # plt.grid()
+    plt.xlim(0, 100)
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig("Project Summary/Images/f(efficiencies)_models.pdf")
+    plt.savefig("Project Summary/CSM_plots/f(efficiencies)_models.pdf")
+    plt.show()
+
+
+
+    
+
+
 if __name__ == "__main__":
 
     # plot_initial_period_computed()
@@ -250,7 +303,9 @@ if __name__ == "__main__":
     #                                     # available energy
     # plot_available_energy_over_time()
     # plot_efficiency_distribution_fixed_period()
-    plot_efficiency_distribution()
+    # plot_efficiency_distribution()
+
+    plot_efficiencies_different_models()
 
     1
 

@@ -625,12 +625,12 @@ if __name__ == "__main__":
     # test_ST_radius()
     # test_density_profile()
     # test_initial_period()
-    test_kick_velocity()
-    # test_pick_arm()
+    # test_kick_velocity()
+    test_pick_arm()
 
-    test_E_SN()
+    # test_E_SN()
     # test_P_PSR()
-    test_n_ISM()
+    # test_n_ISM()
     # test_periods()
 
     # create_galactic_coordinates(1e4)

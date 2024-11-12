@@ -298,7 +298,27 @@ def give_bubble_density_type(M, n_ISM=1):
     n_b = 4e-3 * (0.22*L/1e38)**(6/35) * (n_ISM)**(19/35) * \
         (t_MS/1e7)**(-22/35)  # cm-3
     return n_b
+
+
+def give_bubble_density_mass_loss_type(M, bubble_radius=10*cgs.pc):
+    """Bubble number density from the mass loss"""
+
+    total_volume = 4*np.pi/3*bubble_radius**3
+
+    n_b = give_total_mass_lost(M)/total_volume
+
+    return n_b
+
+
+def give_bubble_temperature_type(M, n_ISM=1):
+    """Bubble number density from MacLow and McCray 1988"""
+
+    L = give_wind_luminosity_type(M)
     
+    t_MS = give_MS_time(M)  # yr
+    T = 1.6e6 * (0.22*L/1e38)**(8/35) * (n_ISM)**(2/35) * \
+        (t_MS/1e6)**(-6/35)  # cm-3
+    return T
 
 
 def give_bubble_radius(
@@ -1097,9 +1117,7 @@ def give_wind_density(M = 8, typee = "RSG"):
     return wind_density
 
 
-def plot_distributions():
-
-    n = 10000
+def plot_distributions(n=10000):
 
     bubble_density = []
     ejected_mass = []
@@ -1110,6 +1128,7 @@ def plot_distributions():
     wind_density = []
     luminosity = []
     MS_time = []
+    bubble_temperature = []
 
     for _ in tqdm(range(n)):
         M = give_random_value(pick_IMF, 8, 120)
@@ -1123,6 +1142,7 @@ def plot_distributions():
         wind_density.append(star.wind_density/(star.wind_radius/cgs.pc)**2/cgs.proton_mass)
         luminosity.append(star.luminosity)
         MS_time.append(star.MS_time/cgs.Myr)
+        bubble_temperature.append(star.bubble_temperature)
         
     mass_loss = np.array(mass_loss)
     wind_radius = np.array(wind_radius)
@@ -1133,70 +1153,71 @@ def plot_distributions():
     wind_density = np.array(wind_density)
     luminosity = np.array(luminosity)
     MS_time = np.array(MS_time)
+    bubble_temperature = np.array(bubble_temperature)
 
     _, bins = np.histogram(mass_loss, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
 
-    fig = plt.figure()
-    plt.hist(mass_loss, histtype="step", bins=logbins, weights=np.ones_like(mass_loss) / len(mass_loss), label="")
-    plt.xscale("log")
-    plt.xlabel("Mass loss [M$_\odot$/yr]")  
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Mass loss.pdf")
-    plt.savefig("Project Summary/CSM_plots/Mass loss.pdf")
-    plt.savefig("CSM_plots/Mass loss.png")
-    plt.savefig("CSM_plots/Mass loss.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(mass_loss, histtype="step", bins=logbins, weights=np.ones_like(mass_loss) / len(mass_loss), label="")
+    # plt.xscale("log")
+    # plt.xlabel("Mass loss [M$_\odot$/yr]")  
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Mass loss.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Mass loss.pdf")
+    # plt.savefig("CSM_plots/Mass loss.png")
+    # plt.savefig("CSM_plots/Mass loss.pdf")
+    # plt.show()
 
-    fig = plt.figure()
-    plt.hist(wind_radius, histtype="step", bins=50, weights=np.ones_like(wind_radius) / len(wind_radius), label="")
-    plt.xlabel("Wind radius [pc]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Wind radius.pdf")
-    plt.savefig("Project Summary/CSM_plots/Wind radius.pdf")
-    plt.savefig("CSM_plots/Wind radius.png")
-    plt.savefig("CSM_plots/Wind radius.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(wind_radius, histtype="step", bins=50, weights=np.ones_like(wind_radius) / len(wind_radius), label="")
+    # plt.xlabel("Wind radius [pc]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Wind radius.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Wind radius.pdf")
+    # plt.savefig("CSM_plots/Wind radius.png")
+    # plt.savefig("CSM_plots/Wind radius.pdf")
+    # plt.show()
     
-    fig = plt.figure()
-    plt.hist(bubble_radius, histtype="step", bins=50, weights=np.ones_like(bubble_radius) / len(bubble_radius),label="")
-    plt.xlabel("Bubble radius [pc]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Bubble radius.pdf")
-    plt.savefig("Project Summary/CSM_plots/Bubble radius.pdf")
-    plt.savefig("CSM_plots/Bubble radius.png")
-    plt.savefig("CSM_plots/Bubble radius.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(bubble_radius, histtype="step", bins=50, weights=np.ones_like(bubble_radius) / len(bubble_radius),label="")
+    # plt.xlabel("Bubble radius [pc]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Bubble radius.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Bubble radius.pdf")
+    # plt.savefig("CSM_plots/Bubble radius.png")
+    # plt.savefig("CSM_plots/Bubble radius.pdf")
+    # plt.show()
     
-    fig = plt.figure()
-    plt.hist(wind_speed, histtype="step", bins=50, weights=np.ones_like(wind_speed) / len(wind_speed), label="")
-    plt.xlabel("Wind Speed [km/s]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Wind Speed.pdf")
-    plt.savefig("Project Summary/CSM_plots/Wind Speed.pdf")
-    plt.savefig("CSM_plots/Wind Speed.png")
-    plt.savefig("CSM_plots/Wind Speed.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(wind_speed, histtype="step", bins=50, weights=np.ones_like(wind_speed) / len(wind_speed), label="")
+    # plt.xlabel("Wind Speed [km/s]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Wind Speed.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Wind Speed.pdf")
+    # plt.savefig("CSM_plots/Wind Speed.png")
+    # plt.savefig("CSM_plots/Wind Speed.pdf")
+    # plt.show()
     
-    fig = plt.figure()
-    plt.hist(ejected_mass, histtype="step", bins=50, weights=np.ones_like(ejected_mass) / len(ejected_mass), label="")
-    plt.xlabel("SNR ejecta Mass [M$_\odot$]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Ejected Mass.pdf")
-    plt.savefig("Project Summary/CSM_plots/Ejected Mass.pdf")
-    plt.savefig("CSM_plots/Ejected Mass.png")
-    plt.savefig("CSM_plots/Ejected Mass.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(ejected_mass, histtype="step", bins=50, weights=np.ones_like(ejected_mass) / len(ejected_mass), label="")
+    # plt.xlabel("SNR ejecta Mass [M$_\odot$]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Ejected Mass.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Ejected Mass.pdf")
+    # plt.savefig("CSM_plots/Ejected Mass.png")
+    # plt.savefig("CSM_plots/Ejected Mass.pdf")
+    # plt.show()
 
     _, bins = np.histogram(bubble_density, bins=50)
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
@@ -1214,49 +1235,65 @@ def plot_distributions():
     plt.savefig("CSM_plots/Bubble density.pdf")
     plt.show()
 
-    _, bins = np.histogram(wind_density, bins=50)
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    # _, bins = np.histogram(wind_density, bins=50)
+    # logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
     
-    fig = plt.figure()
-    plt.hist(wind_density, histtype="step", bins=logbins, weights=np.ones_like(wind_density) / len(wind_density),label="")
-    plt.xscale("log")
-    plt.xlabel("Wind density [cm$^{-3}$]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Wind density.pdf")
-    plt.savefig("Project Summary/CSM_plots/Wind density.pdf")
-    plt.savefig("CSM_plots/Wind density.png")
-    plt.savefig("CSM_plots/Wind density.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(wind_density, histtype="step", bins=logbins, weights=np.ones_like(wind_density) / len(wind_density),label="")
+    # plt.xscale("log")
+    # plt.xlabel("Wind density [cm$^{-3}$]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Wind density.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Wind density.pdf")
+    # plt.savefig("CSM_plots/Wind density.png")
+    # plt.savefig("CSM_plots/Wind density.pdf")
+    # plt.show()
     
-    _, bins = np.histogram(luminosity, bins=50)
-    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    # _, bins = np.histogram(luminosity, bins=50)
+    # logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
     
-    fig = plt.figure()
-    plt.hist(luminosity, histtype="step", bins=logbins, weights=np.ones_like(luminosity) / len(luminosity), label="")
-    plt.xscale("log")
-    plt.xlabel("Luminosity [erg/s]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/Luminosity.pdf")
-    plt.savefig("Project Summary/CSM_plots/Luminosity.pdf")
-    plt.savefig("CSM_plots/Luminosity.png")
-    plt.savefig("CSM_plots/Luminosity.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(luminosity, histtype="step", bins=logbins, weights=np.ones_like(luminosity) / len(luminosity), label="")
+    # plt.xscale("log")
+    # plt.xlabel("Luminosity [erg/s]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Luminosity.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Luminosity.pdf")
+    # plt.savefig("CSM_plots/Luminosity.png")
+    # plt.savefig("CSM_plots/Luminosity.pdf")
+    # plt.show()
 
-    fig = plt.figure()
-    plt.hist(MS_time, histtype="step", bins=50, weights=np.ones_like(MS_time) / len(MS_time), label="")
-    plt.xlabel("MS time [Myr]")
-    plt.ylabel("Proportion of stars")
-    plt.grid()
-    fig.tight_layout()
-    plt.savefig("Project Summary/Images/MS time.pdf")
-    plt.savefig("Project Summary/CSM_plots/MS time.pdf")
-    plt.savefig("CSM_plots/MS time.png")
-    plt.savefig("CSM_plots/MS time.pdf")
-    plt.show()
+    # fig = plt.figure()
+    # plt.hist(MS_time, histtype="step", bins=50, weights=np.ones_like(MS_time) / len(MS_time), label="")
+    # plt.xlabel("MS time [Myr]")
+    # plt.ylabel("Proportion of stars")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/MS time.pdf")
+    # plt.savefig("Project Summary/CSM_plots/MS time.pdf")
+    # plt.savefig("CSM_plots/MS time.png")
+    # plt.savefig("CSM_plots/MS time.pdf")
+    # plt.show()
+
+    # _, bins = np.histogram(bubble_temperature, bins=50)
+    # logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+
+    # fig = plt.figure()
+    # plt.hist(bubble_temperature, histtype="step", bins=logbins, weights=np.ones_like(bubble_temperature) / len(bubble_temperature), label="")
+    # plt.xlabel("Bubble temperature [K]")
+    # plt.ylabel("Proportion of stars")
+    # plt.xscale("log")
+    # plt.grid()
+    # fig.tight_layout()
+    # plt.savefig("Project Summary/Images/Bubble temperature.pdf")
+    # plt.savefig("Project Summary/CSM_plots/Bubble temperature.pdf")
+    # plt.savefig("CSM_plots/Bubble temperature.png")
+    # plt.savefig("CSM_plots/Bubble temperature.pdf")
+    # plt.show()
 
 
 
@@ -1282,7 +1319,14 @@ class Star:
         self.wind_radius = give_wind_radius_type(np.array([self.init_mass]), self.MS_type, self.ism_density)[0] * cgs.pc
         self.bubble_radius = give_bubble_radius_type(np.array([self.init_mass]), self.ism_density, self.MS_type)[0] * cgs.pc
         self.wind_density =  give_wind_density(self.init_mass, self.postMS_type)
-        self.bubble_density = give_bubble_density_type(np.array([self.init_mass]), self.ism_density)[0] * cgs.proton_mass
+
+        # Density with the mass lost during all phases
+        self.bubble_density = give_bubble_density_mass_loss_type(np.array([self.init_mass]), self.bubble_radius)[0]
+
+        # # Density with Castor 1985
+        # self.bubble_density = give_bubble_density_type(np.array([self.init_mass]), self.ism_density)[0] * cgs.proton_mass
+
+        self.bubble_temperature = give_bubble_temperature_type(np.array([self.init_mass]), self.ism_density)
         self.luminosity = give_wind_luminosity_type([self.init_mass])
 
         self.wind_kinetic_power = self.mass_loss * self.wind_speed**2 / 2
@@ -1307,7 +1351,7 @@ if __name__ == "__main__":
     # plot_wind_luminosity()
     # plot_wind_speed()
     # plot_mass_loss()
-    plot_bubble_density()
+    # plot_bubble_density()
     # plot_bubble_radius()
     # plot_SN_radius(s=0)
     # plot_SN_radius_comparison_medium()
@@ -1322,8 +1366,7 @@ if __name__ == "__main__":
     # plot_SN_radius_varying_parameters(AGE_GEMINGA)
 
 
-    # plot_distributions()
-
+    plot_distributions(n=1000)
 
 
     1

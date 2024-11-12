@@ -68,7 +68,8 @@ def density_profile(r:np.ndarray,
                     characteristic_wind_density:float = 1e44, #pc2/cm3
                     number_density:float = 1/cgs.cm3,
                     n_bubble:float = 0.01/cgs.cm3,
-                    r_shell:float = 1*cgs.pc
+                    r_shell:float = 1*cgs.pc,
+                    shell_density:float = 17/cgs.cm3
                     ):
     
     density_arr = []
@@ -80,7 +81,7 @@ def density_profile(r:np.ndarray,
             n = n_bubble # Simple solution
             # n = n_bubble*((1 - r_/r_b) / (1 - r_w/r_b))**(-2/5) # From Weaver+1977
         elif r_ < r_b+r_shell:
-            n = 17
+            n = shell_density
         else:
             n = number_density
         density_arr.append(n)
@@ -91,7 +92,8 @@ def density_profile(r:np.ndarray,
 def temperature_profile(r:np.ndarray,
                         r_w:float = 1.5*cgs.pc,
                         r_b:float = 25*cgs.pc,
-                        r_shell:float = 1*cgs.pc
+                        r_shell:float = 1*cgs.pc,
+                        bubble_temperature:float = 1e6*cgs.K # From Recchia+2022
                         ):
     
     temperature_arr = []
@@ -100,7 +102,7 @@ def temperature_profile(r:np.ndarray,
         if r_ < r_w:
             T = 1e4*cgs.K
         elif r_ < r_b:
-            T = 1e6*cgs.K # From Recchia+2022
+            T = bubble_temperature
             # T = 1e6*cgs.K*((1 - r_/r_b) / (1 - r_w/r_b))**(2/5) # From Weaver+1977
         elif r_ < r_b + r_shell:
             T = 8000*cgs.K
@@ -113,18 +115,29 @@ def temperature_profile(r:np.ndarray,
 
 def test_density_temperature_profile():
 
-    n_ISM = 10
+    n_ISM = 1
 
-    r_arr = np.geomspace(0.1*cgs.pc, 100*cgs.pc, 1000)
+    star = bubble.Star()
 
-    time_array = np.array([shock.give_time_radius_integration(r_, 1.5*cgs.pc, 25*cgs.pc)
+
+    r_arr = np.geomspace(0.001*cgs.pc, 100*cgs.pc, 1000)
+
+    time_array = np.array([shock.give_time_radius_integration(r_, star.wind_radius, star.bubble_radius)
                       for r_ in r_arr])
+    
+    density = density_profile(r_arr, r_w=star.wind_radius,
+                                     r_b=star.bubble_radius,
+                                     number_density=n_ISM,
+                                     shell_density=shell_density(star.bubble_radius)[0]/cgs.proton_mass)
+    
+    temperature = temperature_profile(r_arr, r_w=star.wind_radius,
+                                             r_b=star.bubble_radius)
 
     fig, (ax1, ax3) = plt.subplots(2, 1, sharex=True)
 
     color = 'tab:red'
     ax1.set_ylabel(r"Density [cm$^{-3}$]", color=color)
-    ax1.plot(r_arr/cgs.pc, density_profile(r_arr, number_density=n_ISM), color=color)
+    ax1.plot(r_arr/cgs.pc, density, color=color)
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.set_xscale("log")
     ax1.set_yscale("log")
@@ -133,20 +146,24 @@ def test_density_temperature_profile():
 
     color = 'tab:blue'
     ax2.set_ylabel(r"Temperature [K]", color=color)  # we already handled the x-label with ax1
-    ax2.plot(r_arr/cgs.pc, temperature_profile(r_arr), color=color)
+    ax2.plot(r_arr/cgs.pc, temperature, color=color)
     ax2.tick_params(axis='y', labelcolor=color)
     ax2.set_yscale("log")
 
-    ax1.axvline(x=1.5, linestyle="--", alpha=0.5, linewidth=1,
+    ax1.axvline(x=star.wind_radius/cgs.pc, linestyle="--", alpha=0.5, linewidth=1,
                 color="black", label="Wind radius")
-    ax1.axvline(x=25, linestyle="-.", alpha=0.5, linewidth=1,
+    ax1.axvline(x=star.bubble_radius/cgs.pc, linestyle="-.", alpha=0.5, linewidth=1,
                 color="black", label="Bubble radius")
     ax1.grid()
     ax1.legend(fontsize=10)
 
 
-    ax3.plot(r_arr/cgs.pc, cooling_time(temperature_profile(r_arr), density_profile(r_arr))/cgs.kyr, label="Cooling time")
+    ax3.plot(r_arr/cgs.pc, cooling_time(temperature, density)/cgs.kyr, label="Cooling time")
     ax3.plot(r_arr/cgs.pc, time_array/cgs.kyr, label=r"$t(R)$")
+    ax3.axvline(x=star.wind_radius/cgs.pc, linestyle="--", alpha=0.5, linewidth=1,
+                color="black")
+    ax3.axvline(x=star.bubble_radius/cgs.pc, linestyle="-.", alpha=0.5, linewidth=1,
+                color="black")
     ax3.set_xlabel("Radius [pc]")
     ax3.set_ylabel("Time [kyr]")
     ax3.set_xscale("log")
@@ -284,7 +301,8 @@ class PSR_SNR_System:
                                        self.bubble_radius,
                                        self.ism_density,
                                        self.bubble_density,
-                                       self.shell_width)
+                                       self.shell_width,
+                                       self.shell_density/cgs.proton_mass)
         self.coolingtime = cooling_time(self.temperature,
                                         self.density)
         self.soundspeed = sound_speed(self.temperature)
@@ -451,7 +469,7 @@ class PSR_SNR_System:
             # self.radiative_phase()
             self.merger()
         elif boundary == "bubble":
-            self.time_arr = np.geomspace(1e1*cgs.year, 1e7*cgs.year, 10000)
+            self.time_arr = np.geomspace(1e1*cgs.year, 1e8*cgs.year, 10000)
             self.radius_arr = np.zeros(np.shape(self.time_arr)) + self.shell_radius
         end = time.time()
         # print(f"Computation takes {(end-start)} s.")
@@ -536,13 +554,16 @@ def evaluate_one_system(M=8, t=100e3*cgs.year, boundary="bubble"):
     return inside, escape_time
 
 
-def evaluate_several_systems(n=1000, t=100e3*cgs.year, max_mass=120, boundary="bubble"):
+def evaluate_several_systems(n=1000, t=100e3*cgs.year, max_mass=120, boundary="bubble", star_mass=None):
 
     proportion_arr = np.array([])
     escape_times = np.array([])
 
     for _ in range(n):
-        M = bubble.give_random_value(bubble.pick_IMF, 8, max_mass)
+        if star_mass == None:
+            M = bubble.give_random_value(bubble.pick_IMF, 8, max_mass)
+        else:
+            M = star_mass
         result = evaluate_one_system(M, t, boundary)
         proportion_arr = np.append(proportion_arr, result[0])
         escape_times = np.append(escape_times, result[1])
@@ -709,7 +730,7 @@ def test_integration_number_points(plot_evolution:bool=True):
 def final_system_evolution(n=100):
 
     system = PSR_SNR_System(n_=n)
-    system.evolve()
+    system.evolve("bubble")
 
 
 
@@ -874,7 +895,7 @@ def plot_is_pulsar_inside():
 if __name__ == "__main__":
 
     # convergence_radius()
-    # test_density_temperature_profile()
+    test_density_temperature_profile()
     # test_sound_speed()
     # test_shell_density()
     # plot_bubble_radius_distribution()
@@ -882,7 +903,7 @@ if __name__ == "__main__":
     # plot_bubble_mass_distribution()
     # plot_wind_power_distribution()
 
-    final_system_evolution(n=500)
+    # final_system_evolution(n=500)
 
     # plot_comparison_different_models(n=500)
     

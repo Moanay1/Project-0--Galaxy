@@ -235,9 +235,12 @@ class Superbubble:
         #self.computed_luminosity = give_total_luminosity_computed(cluster_mass_loss=self.total_mass_loss,
         #                                                          cluster_wind_speed=self.total_wind_speed)
 
-    def explode_star(self):
+    def explode_star(self, star_mass=None):
 
-        self.star_mass = pick_random_massive_star(self.star_masses)
+        if star_mass==None:
+            self.star_mass = pick_random_massive_star(self.star_masses)
+        else:
+            self.star_mass = star_mass
         self.explosion_time = bubble.give_MS_time(self.star_mass/cgs.sun_mass)*cgs.year
 
         self.pulsar_time = np.geomspace(cgs.year, 1*cgs.Gyr)
@@ -299,10 +302,10 @@ class Superbubble:
         return proportion
 
 
-def evaluate_one_system(boundary="bubble"):
+def evaluate_one_system(boundary="bubble", star_mass=None):
 
     sb = Superbubble()
-    sb.explode_star()
+    sb.explode_star(star_mass=star_mass)
 
     star = bubble.Star(sb.star_mass/cgs.sun_mass)
     wind_density = sb.total_mass_loss/(4*np.pi *  sb.total_wind_speed)/cgs.proton_mass

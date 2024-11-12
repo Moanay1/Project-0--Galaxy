@@ -716,14 +716,14 @@ def plot_luminosity_over_distance_pulsars(zoom:bool = True):
     # Computation of the number of pulsars that have similar properties
     #   to Geminga
     ####################################################################
-    # FLUX (Luminosity over distance squared)
+    # FLUX (Luminosity over distance)
     ####################################################################
 
     tolerance = 3
     Geminga_like_pulsars = []
 
     for i in range(len(name)):
-        if distance[i] < distance[indices_monogem_geminga[1]] * tolerance:
+        if distance[i] < distance[indices_monogem_geminga[1]] * 6* tolerance:
             if false_flux[i] > false_flux[indices_monogem_geminga[1]] / tolerance:
                 Geminga_like_pulsars.append(i)
 
@@ -765,7 +765,7 @@ def plot_luminosity_over_distance_pulsars(zoom:bool = True):
     plt.grid()
     plt.legend(fontsize=10)
     if zoom:
-        plt.xlim(right=distance[indices_monogem_geminga[1]]*tolerance)
+        plt.xlim(right=distance[indices_monogem_geminga[1]]*6*tolerance)
         plt.ylim(bottom=false_flux[indices_monogem_geminga[1]]/tolerance)
         fig.tight_layout()
         plt.savefig("Project Summary/Images/ATNF_pulsars_properties_zoom_luminosity_over_distance.pdf")
